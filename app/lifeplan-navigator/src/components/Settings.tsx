@@ -1486,6 +1486,37 @@ function AccountSettings({
 }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+
+    if (!passwordForm.current) {
+      setPasswordError('現在のパスワードを入力してください');
+      return;
+    }
+    if (passwordForm.new.length < 8) {
+      setPasswordError('新しいパスワードは8文字以上にしてください');
+      return;
+    }
+    if (passwordForm.new !== passwordForm.confirm) {
+      setPasswordError('新しいパスワードが一致しません');
+      return;
+    }
+
+    // TODO: APIでパスワード変更を実装
+    // 現在はデモとして成功を表示
+    setPasswordSuccess(true);
+    setTimeout(() => {
+      setShowPasswordModal(false);
+      setPasswordForm({ current: '', new: '', confirm: '' });
+      setPasswordSuccess(false);
+    }, 2000);
+  };
 
   return (
     <div className="space-y-6">
@@ -1498,7 +1529,10 @@ function AccountSettings({
         </div>
 
         <div className="p-6 space-y-4">
-          <button className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            onClick={() => setShowPasswordModal(true)}
+            className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <div className="flex items-center gap-3">
               <Shield className="w-5 h-5 text-gray-500" />
               <div className="text-left">
@@ -1596,6 +1630,134 @@ function AccountSettings({
                 再設定する
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password change modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              パスワードの変更
+            </h3>
+
+            {passwordSuccess ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-green-600" />
+                </div>
+                <p className="text-gray-900 font-medium">パスワードが変更されました</p>
+              </div>
+            ) : (
+              <>
+                {passwordError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      現在のパスワード
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.current ? 'text' : 'password'}
+                        value={passwordForm.current}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="現在のパスワード"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.current ? (
+                          <EyeOff className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <Eye className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      新しいパスワード
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.new ? 'text' : 'password'}
+                        value={passwordForm.new}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="8文字以上"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.new ? (
+                          <EyeOff className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <Eye className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      新しいパスワード（確認）
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.confirm ? 'text' : 'password'}
+                        value={passwordForm.confirm}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="パスワードを再入力"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeOff className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <Eye className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordForm({ current: '', new: '', confirm: '' });
+                      setPasswordError('');
+                    }}
+                    className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handlePasswordChange}
+                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    変更する
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

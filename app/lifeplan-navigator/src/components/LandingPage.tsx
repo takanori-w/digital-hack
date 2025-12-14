@@ -1,25 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TrendingUp, Shield, Bell, PiggyBank, ChevronRight, CheckCircle, Users, Clock, Star } from 'lucide-react';
-import Onboarding from './Onboarding';
 
 export default function LandingPage() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const router = useRouter();
 
   const handleStart = () => {
-    setShowOnboarding(true);
+    router.push('/onboarding');
   };
 
-  const handleOnboardingComplete = () => {
-    // Onboarding component handles setting onboardingCompleted to true
-    // and saving user data, so we don't need to do anything here
+  const handleLogin = () => {
+    router.push('/login');
   };
-
-  // オンボーディング画面を表示
-  if (showOnboarding) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
-  }
 
   const features = [
     {
@@ -80,7 +73,7 @@ export default function LandingPage() {
             <span className="text-xl font-bold text-gray-900">LifePlan Navigator</span>
           </div>
           <button
-            onClick={handleStart}
+            onClick={handleLogin}
             className="text-primary-600 font-medium hover:text-primary-700 transition-colors"
           >
             ログイン

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAppStore } from '@/lib/store';
 import {
   OnboardingState,
   Step1Data,
@@ -53,6 +54,7 @@ const initialState: OnboardingState = {
 
 export default function OnboardingContainer() {
   const router = useRouter();
+  const { setOnboardingCompleted, setUser } = useAppStore();
   const [state, setState] = useState<OnboardingState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +127,7 @@ export default function OnboardingContainer() {
     setError(null);
 
     try {
+      // Save to onboarding API
       const response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -148,11 +151,119 @@ export default function OnboardingContainer() {
         throw new Error(data.error || 'Failed to save');
       }
 
-      router.push('/dashboard?welcome=true');
+      // Also save to settings API for Settings page compatibility
+      const userProfile = {
+        id: 'user-' + Date.now(),
+        name: '',
+        email: state.step4.email || '',
+        birthDate: state.step1.age ? `${new Date().getFullYear() - state.step1.age}-01-01` : '',
+        gender: 'male' as const,
+        prefecture: state.step2.region || '東京都',
+        city: '',
+        occupation: mapEmploymentTypeToOccupation(state.step1.employmentType),
+        annualIncome: 4000000,
+        householdSize: 1 + (state.step3.hasSpouse ? 1 : 0) + state.step3.children.length,
+        maritalStatus: state.step3.hasSpouse ? 'married' as const : 'single' as const,
+        hasChildren: state.step3.children.length > 0,
+        numberOfChildren: state.step3.children.length,
+        childrenAges: state.step3.children.map(c => c.age),
+        housingType: mapResidenceTypeToHousingType(state.step2.residenceType),
+        futurePlans: mapPlannedEventsToFuturePlans(state.step4.plannedEvents),
+        goals: [] as string[],
+        favoriteAnimal: 'penguin' as const,
+        financialInfo: {
+          monthlyHousingCost: 80000,
+          currentSavings: 1000000,
+          monthlySavingsAmount: 30000,
+          investmentAssets: 0,
+          hasLifeInsurance: false,
+          hasHealthInsurance: false,
+          hasPensionInsurance: false,
+          hasIdeco: false,
+          hasNisa: false,
+          annualMedicalExpenses: 50000,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: 'user', data: userProfile }),
+      });
+
+      // Mark onboarding as completed
+      await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: 'onboarding', data: { completed: true } }),
+      });
+
+      // Update Zustand store with user profile and onboarding status
+      setUser(userProfile);
+      setOnboardingCompleted(true);
+
+      // Redirect to home page (which will now show Dashboard since onboardingCompleted is true)
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error occurred');
       setIsSubmitting(false);
     }
+  };
+
+  // Helper functions to map onboarding types to settings types
+  const mapEmploymentTypeToOccupation = (type: EmploymentType | null): string => {
+    if (!type) return '';
+    const mapping: Record<EmploymentType, string> = {
+      [EmploymentType.FULL_TIME_EMPLOYEE]: '会社員（正社員）',
+      [EmploymentType.CONTRACT_EMPLOYEE]: '会社員（契約社員）',
+      [EmploymentType.CIVIL_SERVANT]: '公務員',
+      [EmploymentType.SELF_EMPLOYED]: '自営業・フリーランス',
+      [EmploymentType.PART_TIME]: 'パート・アルバイト',
+      [EmploymentType.HOMEMAKER]: '専業主婦・主夫',
+      [EmploymentType.STUDENT]: '学生',
+      [EmploymentType.UNEMPLOYED]: '無職・求職中',
+      [EmploymentType.RETIRED]: 'その他',
+      [EmploymentType.OTHER]: 'その他',
+    };
+    return mapping[type] || '';
+  };
+
+  const mapResidenceTypeToHousingType = (type: ResidenceType | null): 'rent' | 'own' | 'with_parents' => {
+    if (!type) return 'rent';
+    const mapping: Record<ResidenceType, 'rent' | 'own' | 'with_parents'> = {
+      [ResidenceType.RENTAL]: 'rent',
+      [ResidenceType.OWNED]: 'own',
+      [ResidenceType.PARENTS_HOME]: 'with_parents',
+      [ResidenceType.COMPANY_HOUSING]: 'rent',
+      [ResidenceType.PUBLIC_HOUSING]: 'rent',
+      [ResidenceType.OTHER]: 'rent',
+    };
+    return mapping[type] || 'rent';
+  };
+
+  type FuturePlanType = 'marriage' | 'childbirth' | 'housing_purchase' | 'job_change' | 'retirement' | 'child_education' | 'inheritance' | 'startup' | 'investment' | 'side_job';
+
+  const mapPlannedEventsToFuturePlans = (events: PlannedEvent[]): FuturePlanType[] => {
+    const mapping: Record<PlannedEvent, FuturePlanType | ''> = {
+      [PlannedEvent.MARRIAGE]: 'marriage',
+      [PlannedEvent.CHILDBIRTH]: 'childbirth',
+      [PlannedEvent.HOME_PURCHASE]: 'housing_purchase',
+      [PlannedEvent.HOME_RENOVATION]: 'housing_purchase',
+      [PlannedEvent.JOB_CHANGE]: 'job_change',
+      [PlannedEvent.RETIREMENT]: 'retirement',
+      [PlannedEvent.CHILD_EDUCATION]: 'child_education',
+      [PlannedEvent.NURSING_CARE]: 'inheritance',
+      [PlannedEvent.INHERITANCE]: 'inheritance',
+      [PlannedEvent.RELOCATION]: 'housing_purchase',
+      [PlannedEvent.SIDE_BUSINESS]: 'side_job',
+      [PlannedEvent.NONE]: '',
+    };
+    return events
+      .filter(e => e !== PlannedEvent.NONE)
+      .map(e => mapping[e])
+      .filter((v): v is FuturePlanType => v !== '');
   };
 
   // Render step content

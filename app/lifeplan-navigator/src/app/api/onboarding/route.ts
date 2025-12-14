@@ -14,16 +14,48 @@ export const dynamic = 'force-dynamic';
 // Mock onboarding storage (in production, use a database)
 const ONBOARDING_PROFILES: Map<string, UserOnboardingProfile & { userId: string }> = new Map();
 
+// Rate limiting (SEC-03 compliance)
+const requestCounts = new Map<string, { count: number; timestamp: number }>();
+const RATE_LIMIT = 20; // requests per minute (stricter for mutation endpoints)
+const RATE_WINDOW = 60 * 1000; // 1 minute
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = requestCounts.get(ip);
+
+  if (!record || now - record.timestamp > RATE_WINDOW) {
+    requestCounts.set(ip, { count: 1, timestamp: now });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
 /**
  * Validate session and get user ID
+ * For onboarding, allows anonymous users with a generated ID
  */
-function getUserIdFromSession(request: NextRequest): string | null {
+function getUserIdFromSession(request: NextRequest, allowAnonymous: boolean = false): string | null {
   const sessionCookie = request.cookies.get('session');
-  if (!sessionCookie) {
-    return null;
+  if (sessionCookie) {
+    // For demo purposes, return a fixed user ID for authenticated users
+    return 'demo-user-001';
   }
-  // For demo purposes, return a fixed user ID
-  return 'demo-user-001';
+
+  // For anonymous users during onboarding, generate an ID based on IP
+  if (allowAnonymous) {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    // Generate a deterministic anonymous ID based on IP (for demo purposes)
+    // In production, this would use a more robust mechanism
+    return `anon-${ip.replace(/[.:]/g, '-')}`;
+  }
+
+  return null;
 }
 
 /**
@@ -82,8 +114,18 @@ function isValidChild(child: unknown): child is Child {
  * Retrieve current user's onboarding profile
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting check
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'リクエスト制限を超えました。しばらく待ってから再試行してください。' },
+      { status: 429 }
+    );
+  }
+
   try {
-    const userId = getUserIdFromSession(request);
+    // Allow anonymous users for onboarding (allowAnonymous: true)
+    const userId = getUserIdFromSession(request, true);
 
     if (!userId) {
       return NextResponse.json(
@@ -136,8 +178,18 @@ export async function GET(request: NextRequest) {
  * Create or update onboarding profile
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting check
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'リクエスト制限を超えました。しばらく待ってから再試行してください。' },
+      { status: 429 }
+    );
+  }
+
   try {
-    const userId = getUserIdFromSession(request);
+    // Allow anonymous users for onboarding (allowAnonymous: true)
+    const userId = getUserIdFromSession(request, true);
 
     if (!userId) {
       return NextResponse.json(
@@ -305,8 +357,18 @@ export async function POST(request: NextRequest) {
  * Partially update onboarding profile
  */
 export async function PATCH(request: NextRequest) {
+  // Rate limiting check
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'リクエスト制限を超えました。しばらく待ってから再試行してください。' },
+      { status: 429 }
+    );
+  }
+
   try {
-    const userId = getUserIdFromSession(request);
+    // Allow anonymous users for onboarding (allowAnonymous: true)
+    const userId = getUserIdFromSession(request, true);
 
     if (!userId) {
       return NextResponse.json(

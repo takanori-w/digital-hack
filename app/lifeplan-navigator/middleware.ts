@@ -37,6 +37,8 @@ const PUBLIC_API_ROUTES = [
   '/api/auth', // NextAuth.js routes
   '/api/csrf-token',
   '/api/health',
+  '/api/onboarding', // Onboarding API (anonymous users allowed)
+  '/api/settings', // Settings API (needed during onboarding)
 ];
 
 /**

@@ -23,11 +23,21 @@ import {
   Home,
   Calendar,
   DollarSign,
+  Wallet,
+  PiggyBank,
+  TrendingUp,
+  CreditCard,
+  Stethoscope,
+  Target,
+  Rocket,
+  Heart,
+  Building,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useAuthStore } from '@/lib/auth-store';
 import { validateEmail, validateName } from '@/lib/validation';
-import { UserProfile, EmailSettings, NotificationSettings, AppSettings } from '@/types';
+import { UserProfile, EmailSettings, NotificationSettings, AppSettings, FuturePlan, AnimalType, HousingType } from '@/types';
+import { AnimalIcons, animalDescriptions } from './AnimalIcons';
 
 interface SettingsProps {
   onLogout: () => void;
@@ -58,6 +68,32 @@ const OCCUPATIONS = [
   '無職・求職中',
   'その他',
 ];
+
+const FUTURE_PLANS: { value: FuturePlan; label: string }[] = [
+  { value: 'marriage', label: '結婚' },
+  { value: 'childbirth', label: '出産' },
+  { value: 'housing_purchase', label: '住宅購入' },
+  { value: 'job_change', label: '転職' },
+  { value: 'startup', label: '起業' },
+  { value: 'side_job', label: '副業開始' },
+  { value: 'child_education', label: '子どもの教育' },
+  { value: 'retirement', label: '退職' },
+  { value: 'inheritance', label: '相続' },
+  { value: 'investment', label: '投資開始' },
+];
+
+const GOAL_OPTIONS = [
+  { value: 'savings', label: '貯蓄を増やす' },
+  { value: 'investment', label: '投資を始める・増やす' },
+  { value: 'tax_saving', label: '節税対策' },
+  { value: 'insurance', label: '保険の見直し' },
+  { value: 'housing', label: '住宅の購入・ローン' },
+  { value: 'education', label: '教育資金の準備' },
+  { value: 'retirement', label: '老後の資金準備' },
+  { value: 'subsidy', label: '補助金・給付金の活用' },
+];
+
+const ANIMAL_OPTIONS: AnimalType[] = ['penguin', 'cat', 'dog', 'owl', 'rabbit', 'koala'];
 
 export default function Settings({ onLogout, onResetOnboarding }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -179,27 +215,72 @@ function ProfileSettings({
   const { user: storeUser, updateUser } = useAppStore();
   const user = serverSettings?.user || storeUser;
 
+  // Parse birthDate into components
+  const parseBirthDate = (birthDate?: string) => {
+    if (!birthDate) return { year: 1990, month: 1, day: 1 };
+    const date = new Date(birthDate);
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+    };
+  };
+
+  const birthDateParts = parseBirthDate(user?.birthDate);
+
   const [formData, setFormData] = useState({
+    // 基本情報
     name: user?.name || '',
     email: user?.email || '',
+    birthYear: birthDateParts.year,
+    birthMonth: birthDateParts.month,
+    birthDay: birthDateParts.day,
+    gender: user?.gender || 'male' as 'male' | 'female' | 'other',
+    // 住所
     prefecture: user?.prefecture || '東京都',
     city: user?.city || '',
+    // 職業・収入
     occupation: user?.occupation || '',
     annualIncome: user?.annualIncome || 4000000,
+    // 家族構成
     maritalStatus: user?.maritalStatus || 'single',
     hasChildren: user?.hasChildren || false,
     numberOfChildren: user?.numberOfChildren || 0,
+    childrenAges: user?.childrenAges || [] as number[],
+    // 住居
     housingType: user?.housingType || 'rent',
+    // 資産・家計
+    monthlyHousingCost: user?.financialInfo?.monthlyHousingCost || 80000,
+    currentSavings: user?.financialInfo?.currentSavings || 1000000,
+    monthlySavingsAmount: user?.financialInfo?.monthlySavingsAmount || 30000,
+    investmentAssets: user?.financialInfo?.investmentAssets || 0,
+    hasLifeInsurance: user?.financialInfo?.hasLifeInsurance || false,
+    hasHealthInsurance: user?.financialInfo?.hasHealthInsurance || false,
+    hasPensionInsurance: user?.financialInfo?.hasPensionInsurance || false,
+    hasIdeco: user?.financialInfo?.hasIdeco || false,
+    hasNisa: user?.financialInfo?.hasNisa || false,
+    annualMedicalExpenses: user?.financialInfo?.annualMedicalExpenses || 50000,
+    // 今後の予定・目標
+    futurePlans: user?.futurePlans || [] as FuturePlan[],
+    goals: user?.goals || [] as string[],
+    // お気に入りアニマル
+    favoriteAnimal: user?.favoriteAnimal || 'penguin' as AnimalType,
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [activeSection, setActiveSection] = useState<string>('basic');
 
   useEffect(() => {
     if (user) {
+      const birthParts = parseBirthDate(user.birthDate);
       setFormData({
         name: user.name || '',
         email: user.email || '',
+        birthYear: birthParts.year,
+        birthMonth: birthParts.month,
+        birthDay: birthParts.day,
+        gender: user.gender || 'male',
         prefecture: user.prefecture || '東京都',
         city: user.city || '',
         occupation: user.occupation || '',
@@ -207,7 +288,21 @@ function ProfileSettings({
         maritalStatus: user.maritalStatus || 'single',
         hasChildren: user.hasChildren || false,
         numberOfChildren: user.numberOfChildren || 0,
+        childrenAges: user.childrenAges || [],
         housingType: user.housingType || 'rent',
+        monthlyHousingCost: user.financialInfo?.monthlyHousingCost || 80000,
+        currentSavings: user.financialInfo?.currentSavings || 1000000,
+        monthlySavingsAmount: user.financialInfo?.monthlySavingsAmount || 30000,
+        investmentAssets: user.financialInfo?.investmentAssets || 0,
+        hasLifeInsurance: user.financialInfo?.hasLifeInsurance || false,
+        hasHealthInsurance: user.financialInfo?.hasHealthInsurance || false,
+        hasPensionInsurance: user.financialInfo?.hasPensionInsurance || false,
+        hasIdeco: user.financialInfo?.hasIdeco || false,
+        hasNisa: user.financialInfo?.hasNisa || false,
+        annualMedicalExpenses: user.financialInfo?.annualMedicalExpenses || 50000,
+        futurePlans: user.futurePlans || [],
+        goals: user.goals || [],
+        favoriteAnimal: user.favoriteAnimal || 'penguin',
       });
     }
   }, [user]);
@@ -229,9 +324,39 @@ function ProfileSettings({
     setMessage(null);
 
     try {
+      // Construct birthDate from components
+      const birthDate = `${formData.birthYear}-${String(formData.birthMonth).padStart(2, '0')}-${String(formData.birthDay).padStart(2, '0')}`;
+
       const updatedUser: UserProfile = {
         ...user!,
-        ...formData,
+        name: formData.name,
+        email: formData.email,
+        birthDate,
+        gender: formData.gender,
+        prefecture: formData.prefecture,
+        city: formData.city,
+        occupation: formData.occupation,
+        annualIncome: formData.annualIncome,
+        maritalStatus: formData.maritalStatus,
+        hasChildren: formData.hasChildren,
+        numberOfChildren: formData.numberOfChildren,
+        childrenAges: formData.childrenAges,
+        housingType: formData.housingType,
+        futurePlans: formData.futurePlans,
+        goals: formData.goals,
+        favoriteAnimal: formData.favoriteAnimal,
+        financialInfo: {
+          monthlyHousingCost: formData.monthlyHousingCost,
+          currentSavings: formData.currentSavings,
+          monthlySavingsAmount: formData.monthlySavingsAmount,
+          investmentAssets: formData.investmentAssets,
+          hasLifeInsurance: formData.hasLifeInsurance,
+          hasHealthInsurance: formData.hasHealthInsurance,
+          hasPensionInsurance: formData.hasPensionInsurance,
+          hasIdeco: formData.hasIdeco,
+          hasNisa: formData.hasNisa,
+          annualMedicalExpenses: formData.annualMedicalExpenses,
+        },
         updatedAt: new Date().toISOString(),
       };
 
@@ -242,7 +367,7 @@ function ProfileSettings({
       });
 
       if (res.ok) {
-        updateUser(formData);
+        updateUser(updatedUser);
         setMessage({ type: 'success', text: 'プロフィールを更新しました' });
         onSettingsUpdate();
       } else {
@@ -255,6 +380,45 @@ function ProfileSettings({
     }
   };
 
+  // Helper functions for child age management
+  const updateChildAge = (index: number, age: number) => {
+    const newAges = [...formData.childrenAges];
+    newAges[index] = age;
+    setFormData({ ...formData, childrenAges: newAges });
+  };
+
+  // Toggle future plan
+  const toggleFuturePlan = (plan: FuturePlan) => {
+    const current = formData.futurePlans;
+    if (current.includes(plan)) {
+      setFormData({ ...formData, futurePlans: current.filter(p => p !== plan) });
+    } else {
+      setFormData({ ...formData, futurePlans: [...current, plan] });
+    }
+  };
+
+  // Toggle goal
+  const toggleGoal = (goal: string) => {
+    const current = formData.goals;
+    if (current.includes(goal)) {
+      setFormData({ ...formData, goals: current.filter(g => g !== goal) });
+    } else {
+      setFormData({ ...formData, goals: [...current, goal] });
+    }
+  };
+
+  // Section navigation
+  const sections = [
+    { id: 'basic', label: '基本情報', icon: User },
+    { id: 'location', label: '住所・住居', icon: MapPin },
+    { id: 'work', label: '職業・収入', icon: Briefcase },
+    { id: 'family', label: '家族構成', icon: Users },
+    { id: 'finance', label: '資産・家計', icon: Wallet },
+    { id: 'plans', label: '今後の予定', icon: Rocket },
+    { id: 'goals', label: '目標', icon: Target },
+    { id: 'animal', label: 'アニマル', icon: Heart },
+  ];
+
   const formatIncome = (income: number) => {
     if (income >= 10000000) {
       return `${(income / 10000000).toFixed(1)}千万円`;
@@ -262,11 +426,47 @@ function ProfileSettings({
     return `${(income / 10000).toFixed(0)}万円`;
   };
 
+  const formatMoney = (amount: number) => {
+    if (amount >= 10000000) {
+      return `${(amount / 10000000).toFixed(1)}千万円`;
+    }
+    if (amount >= 10000) {
+      return `${(amount / 10000).toFixed(0)}万円`;
+    }
+    return `${amount.toLocaleString()}円`;
+  };
+
+  // Generate year options
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       <div className="p-6 border-b">
         <h2 className="text-lg font-semibold text-gray-900">プロフィール編集</h2>
-        <p className="text-sm text-gray-600 mt-1">基本情報を更新してください</p>
+        <p className="text-sm text-gray-600 mt-1">オンボーディングで設定した情報を編集できます</p>
+      </div>
+
+      {/* Section Navigation */}
+      <div className="border-b overflow-x-auto">
+        <div className="flex min-w-max">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeSection === section.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <section.icon className="w-4 h-4" />
+              {section.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="p-6 space-y-6">
@@ -287,175 +487,527 @@ function ProfileSettings({
           </div>
         )}
 
-        {/* 基本情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <User className="inline w-4 h-4 mr-1" />
-              お名前
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="山田 太郎"
-            />
+        {/* 基本情報セクション */}
+        {activeSection === 'basic' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <User className="inline w-4 h-4 mr-1" />
+                  お名前
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="山田 太郎"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Mail className="inline w-4 h-4 mr-1" />
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="example@email.com"
+                />
+              </div>
+            </div>
+
+            {/* 生年月日 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="inline w-4 h-4 mr-1" />
+                生年月日
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={formData.birthYear}
+                  onChange={(e) => setFormData({ ...formData, birthYear: parseInt(e.target.value) })}
+                  className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {years.map((year) => (
+                    <option key={year} value={year}>{year}年</option>
+                  ))}
+                </select>
+                <select
+                  value={formData.birthMonth}
+                  onChange={(e) => setFormData({ ...formData, birthMonth: parseInt(e.target.value) })}
+                  className="w-24 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {months.map((month) => (
+                    <option key={month} value={month}>{month}月</option>
+                  ))}
+                </select>
+                <select
+                  value={formData.birthDay}
+                  onChange={(e) => setFormData({ ...formData, birthDay: parseInt(e.target.value) })}
+                  className="w-24 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {days.map((day) => (
+                    <option key={day} value={day}>{day}日</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 性別 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">性別</label>
+              <div className="flex gap-4">
+                {[
+                  { value: 'male', label: '男性' },
+                  { value: 'female', label: '女性' },
+                  { value: 'other', label: 'その他' },
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value={option.value}
+                      checked={formData.gender === option.value}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'male' | 'female' | 'other' })}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Mail className="inline w-4 h-4 mr-1" />
-              メールアドレス
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="example@email.com"
-            />
-          </div>
-        </div>
+        {/* 住所・住居セクション */}
+        {activeSection === 'location' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <MapPin className="inline w-4 h-4 mr-1" />
+                  都道府県
+                </label>
+                <select
+                  value={formData.prefecture}
+                  onChange={(e) => setFormData({ ...formData, prefecture: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {PREFECTURES.map((pref) => (
+                    <option key={pref} value={pref}>{pref}</option>
+                  ))}
+                </select>
+              </div>
 
-        {/* 住所情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <MapPin className="inline w-4 h-4 mr-1" />
-              都道府県
-            </label>
-            <select
-              value={formData.prefecture}
-              onChange={(e) => setFormData({ ...formData, prefecture: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {PREFECTURES.map((pref) => (
-                <option key={pref} value={pref}>
-                  {pref}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">市区町村</label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="港区"
+                />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              市区町村
-            </label>
-            <input
-              type="text"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="港区"
-            />
-          </div>
-        </div>
-
-        {/* 職業・収入 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <Briefcase className="inline w-4 h-4 mr-1" />
-            ご職業
-          </label>
-          <select
-            value={formData.occupation}
-            onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">選択してください</option>
-            {OCCUPATIONS.map((occ) => (
-              <option key={occ} value={occ}>
-                {occ}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <DollarSign className="inline w-4 h-4 mr-1" />
-            年収（税込）: {formatIncome(formData.annualIncome)}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="30000000"
-            step="500000"
-            value={formData.annualIncome}
-            onChange={(e) => setFormData({ ...formData, annualIncome: parseInt(e.target.value) })}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0円</span>
-            <span>3,000万円</span>
-          </div>
-        </div>
-
-        {/* 家族構成 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Users className="inline w-4 h-4 mr-1" />
-              婚姻状況
-            </label>
-            <select
-              value={formData.maritalStatus}
-              onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value as UserProfile['maritalStatus'] })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="single">独身</option>
-              <option value="married">既婚</option>
-              <option value="divorced">離別</option>
-              <option value="widowed">死別</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Home className="inline w-4 h-4 mr-1" />
-              住居形態
-            </label>
-            <select
-              value={formData.housingType}
-              onChange={(e) => setFormData({ ...formData, housingType: e.target.value as UserProfile['housingType'] })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="rent">賃貸</option>
-              <option value="own">持ち家</option>
-              <option value="with_parents">実家</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.hasChildren}
-              onChange={(e) => setFormData({ ...formData, hasChildren: e.target.checked })}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">お子様がいる</span>
-          </label>
-
-          {formData.hasChildren && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">人数:</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Building className="inline w-4 h-4 mr-1" />
+                住居形態
+              </label>
               <select
-                value={formData.numberOfChildren}
-                onChange={(e) => setFormData({ ...formData, numberOfChildren: parseInt(e.target.value) })}
-                className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={formData.housingType}
+                onChange={(e) => setFormData({ ...formData, housingType: e.target.value as HousingType })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n}人
-                  </option>
+                <option value="rent">賃貸</option>
+                <option value="own">持ち家</option>
+                <option value="with_parents">実家</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* 職業・収入セクション */}
+        {activeSection === 'work' && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Briefcase className="inline w-4 h-4 mr-1" />
+                ご職業
+              </label>
+              <select
+                value={formData.occupation}
+                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">選択してください</option>
+                {OCCUPATIONS.map((occ) => (
+                  <option key={occ} value={occ}>{occ}</option>
                 ))}
               </select>
             </div>
-          )}
-        </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <DollarSign className="inline w-4 h-4 mr-1" />
+                年収（税込）: {formatIncome(formData.annualIncome)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="30000000"
+                step="500000"
+                value={formData.annualIncome}
+                onChange={(e) => setFormData({ ...formData, annualIncome: parseInt(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0円</span>
+                <span>3,000万円</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 家族構成セクション */}
+        {activeSection === 'family' && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Users className="inline w-4 h-4 mr-1" />
+                婚姻状況
+              </label>
+              <select
+                value={formData.maritalStatus}
+                onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value as UserProfile['maritalStatus'] })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="single">独身</option>
+                <option value="married">既婚</option>
+                <option value="divorced">離別</option>
+                <option value="widowed">死別</option>
+              </select>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.hasChildren}
+                  onChange={(e) => {
+                    const hasChildren = e.target.checked;
+                    setFormData({
+                      ...formData,
+                      hasChildren,
+                      numberOfChildren: hasChildren ? Math.max(1, formData.numberOfChildren) : 0,
+                      childrenAges: hasChildren ? (formData.childrenAges.length > 0 ? formData.childrenAges : [0]) : [],
+                    });
+                  }}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">お子様がいる</span>
+              </label>
+
+              {formData.hasChildren && (
+                <div className="space-y-4 pl-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">人数:</span>
+                    <select
+                      value={formData.numberOfChildren}
+                      onChange={(e) => {
+                        const num = parseInt(e.target.value);
+                        const newAges = [...formData.childrenAges];
+                        while (newAges.length < num) newAges.push(0);
+                        while (newAges.length > num) newAges.pop();
+                        setFormData({ ...formData, numberOfChildren: num, childrenAges: newAges });
+                      }}
+                      className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <option key={n} value={n}>{n}人</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {formData.numberOfChildren > 0 && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">お子様の年齢</label>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.from({ length: formData.numberOfChildren }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">{i + 1}人目:</span>
+                            <select
+                              value={formData.childrenAges[i] || 0}
+                              onChange={(e) => updateChildAge(i, parseInt(e.target.value))}
+                              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                            >
+                              {Array.from({ length: 25 }).map((_, age) => (
+                                <option key={age} value={age}>{age}歳</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 資産・家計セクション */}
+        {activeSection === 'finance' && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Home className="inline w-4 h-4 mr-1" />
+                月々の住居費: {formatMoney(formData.monthlyHousingCost)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="300000"
+                step="5000"
+                value={formData.monthlyHousingCost}
+                onChange={(e) => setFormData({ ...formData, monthlyHousingCost: parseInt(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0円</span>
+                <span>30万円</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <PiggyBank className="inline w-4 h-4 mr-1" />
+                現在の貯蓄額: {formatMoney(formData.currentSavings)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="50000000"
+                step="500000"
+                value={formData.currentSavings}
+                onChange={(e) => setFormData({ ...formData, currentSavings: parseInt(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0円</span>
+                <span>5,000万円</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Wallet className="inline w-4 h-4 mr-1" />
+                月々の貯蓄額: {formatMoney(formData.monthlySavingsAmount)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="500000"
+                step="10000"
+                value={formData.monthlySavingsAmount}
+                onChange={(e) => setFormData({ ...formData, monthlySavingsAmount: parseInt(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0円</span>
+                <span>50万円</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <TrendingUp className="inline w-4 h-4 mr-1" />
+                投資資産: {formatMoney(formData.investmentAssets)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="50000000"
+                step="500000"
+                value={formData.investmentAssets}
+                onChange={(e) => setFormData({ ...formData, investmentAssets: parseInt(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0円</span>
+                <span>5,000万円</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Shield className="inline w-4 h-4 mr-1" />
+                加入している保険
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { key: 'hasLifeInsurance', label: '生命保険' },
+                  { key: 'hasHealthInsurance', label: '医療保険' },
+                  { key: 'hasPensionInsurance', label: '個人年金保険' },
+                ].map((insurance) => (
+                  <label key={insurance.key} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={formData[insurance.key as keyof typeof formData] as boolean}
+                      onChange={(e) => setFormData({ ...formData, [insurance.key]: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{insurance.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <CreditCard className="inline w-4 h-4 mr-1" />
+                利用中の税制優遇制度
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { key: 'hasIdeco', label: 'iDeCo（個人型確定拠出年金）' },
+                  { key: 'hasNisa', label: 'NISA（少額投資非課税制度）' },
+                ].map((program) => (
+                  <label key={program.key} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={formData[program.key as keyof typeof formData] as boolean}
+                      onChange={(e) => setFormData({ ...formData, [program.key]: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{program.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Stethoscope className="inline w-4 h-4 mr-1" />
+                年間の医療費（概算）: {formatMoney(formData.annualMedicalExpenses)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="500000"
+                step="10000"
+                value={formData.annualMedicalExpenses}
+                onChange={(e) => setFormData({ ...formData, annualMedicalExpenses: parseInt(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0円</span>
+                <span>50万円</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 今後の予定セクション */}
+        {activeSection === 'plans' && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">今後5年以内に予定しているライフイベントを選択してください（複数選択可）</p>
+            <div className="grid grid-cols-2 gap-3">
+              {FUTURE_PLANS.map((plan) => (
+                <label
+                  key={plan.value}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    formData.futurePlans.includes(plan.value)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.futurePlans.includes(plan.value)}
+                    onChange={() => toggleFuturePlan(plan.value)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{plan.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 目標セクション */}
+        {activeSection === 'goals' && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">関心のある目標を選択してください（複数選択可）</p>
+            <div className="grid grid-cols-2 gap-3">
+              {GOAL_OPTIONS.map((goal) => (
+                <label
+                  key={goal.value}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                    formData.goals.includes(goal.value)
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.goals.includes(goal.value)}
+                    onChange={() => toggleGoal(goal.value)}
+                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                  />
+                  <span className="text-sm text-gray-700">{goal.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* アニマルセクション */}
+        {activeSection === 'animal' && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">あなたを表すアニマルを選択してください</p>
+            <div className="grid grid-cols-3 gap-4">
+              {ANIMAL_OPTIONS.map((animal) => {
+                const AnimalIcon = AnimalIcons[animal];
+                return (
+                  <button
+                    key={animal}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, favoriteAnimal: animal })}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                      formData.favoriteAnimal === animal
+                        ? 'border-purple-500 bg-purple-50 shadow-md'
+                        : 'border-gray-200 hover:border-purple-200'
+                    }`}
+                  >
+                    <AnimalIcon className={`w-12 h-12 ${
+                      formData.favoriteAnimal === animal ? 'text-purple-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`text-sm font-medium ${
+                      formData.favoriteAnimal === animal ? 'text-purple-700' : 'text-gray-600'
+                    }`}>
+                      {animalDescriptions[animal].name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {formData.favoriteAnimal && (
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <p className="text-sm text-purple-700">
+                  <strong>{animalDescriptions[formData.favoriteAnimal].name}:</strong>{' '}
+                  {animalDescriptions[formData.favoriteAnimal].trait}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           onClick={handleSave}

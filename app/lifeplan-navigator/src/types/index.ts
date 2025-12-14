@@ -28,6 +28,20 @@ export type FuturePlan =
 // 住居タイプ（社宅追加）
 export type HousingType = 'rent' | 'own' | 'with_parents' | 'company_housing' | 'other';
 
+// 財務情報
+export interface FinancialInfo {
+  currentSavings: number;           // 現在の貯蓄額（円）
+  monthlySavingsAmount: number;     // 月々の貯蓄額（円）
+  investmentAssets: number;         // 投資資産（円）
+  monthlyHousingCost: number;       // 月々の住居費（円）
+  hasLifeInsurance: boolean;        // 生命保険加入
+  hasHealthInsurance: boolean;      // 医療保険加入
+  hasPensionInsurance: boolean;     // 個人年金保険加入
+  hasIdeco: boolean;                // iDeCo加入
+  hasNisa: boolean;                 // NISA活用
+  annualMedicalExpenses: number;    // 年間医療費（円）
+}
+
 // ユーザープロファイル
 export interface UserProfile {
   id: string;
@@ -46,7 +60,10 @@ export interface UserProfile {
   childrenAges: number[];
   housingType: HousingType;
   futurePlans: FuturePlan[];
+  goals: string[];
   favoriteAnimal: AnimalType;
+  // 財務情報
+  financialInfo?: FinancialInfo;
   createdAt: string;
   updatedAt: string;
 }
@@ -225,12 +242,75 @@ export interface OnboardingAnswers {
   annualIncome: number;
   // 住居
   housingType: HousingType;
+  monthlyHousingCost: number;
+  // 資産・家計
+  currentSavings: number;
+  monthlySavingsAmount: number;
+  investmentAssets: number;
+  hasLifeInsurance: boolean;
+  hasHealthInsurance: boolean;
+  hasPensionInsurance: boolean;
+  hasIdeco: boolean;
+  hasNisa: boolean;
+  annualMedicalExpenses: number;
   // 目標
   goals: string[];
   // 今後の予定（新規追加）
   futurePlans: FuturePlan[];
   // お気に入りの動物（Zoo テーマ）
   favoriteAnimal: AnimalType;
+}
+
+// 法律理解度チェック
+export interface LawQuizItem {
+  id: string;
+  lawId: string;
+  category: 'tax' | 'labor' | 'social_security' | 'housing' | 'family';
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  difficultyLevel: 1 | 2 | 3;
+  impactOnFinance: 'high' | 'medium' | 'low';
+  potentialSavings?: number;
+}
+
+export interface LawQuizResult {
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  understanding: 'low' | 'medium' | 'high';
+  recommendations: string[];
+  answers: { questionId: string; userAnswer: number; isCorrect: boolean }[];
+}
+
+// 損得評価
+export interface FinancialEvaluation {
+  overallScore: number;
+  potentialSavings: number;
+  missedOpportunities: MissedOpportunity[];
+  currentBenefits: CurrentBenefit[];
+  status: 'losing' | 'neutral' | 'gaining';
+  summary: string;
+}
+
+export interface MissedOpportunity {
+  id: string;
+  name: string;
+  description: string;
+  potentialBenefit: number;
+  priority: 'high' | 'medium' | 'low';
+  category: string;
+  actionUrl?: string;
+  howToApply: string;
+}
+
+export interface CurrentBenefit {
+  id: string;
+  name: string;
+  description: string;
+  currentBenefit: number;
+  category: string;
 }
 
 // メール設定

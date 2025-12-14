@@ -538,12 +538,14 @@ export class AuditLogService {
    * データベースへの書き込み（単一）
    */
   private async writeToDatabase(log: AuditLog): Promise<void> {
-    // 実装: PostgreSQL への INSERT
-    // この実装はバックエンドAPIを呼び出す形式
-    // 実際の実装ではDB接続を使用
+    // サーバーサイドでのみDB書き込み
     if (typeof window === 'undefined') {
-      // サーバーサイドでのみDB書き込み
-      // await dbPool.query('INSERT INTO audit_logs ...', [...]);
+      try {
+        const { insertAuditLog } = await import('@/lib/database/audit-repository');
+        await insertAuditLog(log);
+      } catch (err) {
+        console.error('[AUDIT] Database write error:', err);
+      }
     }
   }
 
@@ -551,10 +553,14 @@ export class AuditLogService {
    * データベースへの書き込み（バッチ）
    */
   private async writeBatchToDatabase(logs: AuditLog[]): Promise<void> {
-    // 実装: PostgreSQL への BATCH INSERT
+    // サーバーサイドでのみDB書き込み
     if (typeof window === 'undefined' && logs.length > 0) {
-      // サーバーサイドでのみDB書き込み
-      // await dbPool.query('INSERT INTO audit_logs ... VALUES ...', [...]);
+      try {
+        const { insertAuditLogBatch } = await import('@/lib/database/audit-repository');
+        await insertAuditLogBatch(logs);
+      } catch (err) {
+        console.error('[AUDIT] Database batch write error:', err);
+      }
     }
   }
 

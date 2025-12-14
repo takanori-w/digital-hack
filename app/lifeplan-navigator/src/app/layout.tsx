@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/components/providers/AuthProvider';
 import { AbilityProvider } from '@/lib/authorization';
 import { CsrfProvider } from '@/components/providers/CsrfProvider';
+import { DisclaimerFooter } from '@/components/common/DisclaimerFooter';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,9 @@ export const metadata: Metadata = {
  * Security Compliance:
  * - SEC-001: Session-based authentication via NextAuth.js
  * - SEC-002: RBAC via CASL AbilityProvider
+ *
+ * Legal Compliance:
+ * - APP-017: Global DisclaimerFooter for legal compliance (Auditor directive)
  */
 export default function RootLayout({
   children,
@@ -31,10 +35,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={inter.className}>
+      <body className={`${inter.className} min-h-screen flex flex-col`}>
         <AuthProvider>
           <AbilityProvider>
-            <CsrfProvider>{children}</CsrfProvider>
+            <CsrfProvider>
+              <main className="flex-grow">{children}</main>
+              <DisclaimerFooter compact />
+            </CsrfProvider>
           </AbilityProvider>
         </AuthProvider>
       </body>

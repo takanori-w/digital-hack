@@ -18,6 +18,15 @@ import {
   Building,
   Rocket,
   Heart,
+  Shield,
+  AlertTriangle,
+  FileText,
+  ExternalLink,
+  Wallet,
+  PiggyBank,
+  TrendingUp,
+  CreditCard,
+  Stethoscope,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { LifeStage, OnboardingAnswers, UserProfile, FuturePlan, AnimalType, HousingType } from '@/types';
@@ -82,9 +91,11 @@ const STEPS = [
   { id: 'family', title: '家族構成', icon: Users },
   { id: 'work', title: 'お仕事', icon: Briefcase },
   { id: 'location', title: 'お住まい', icon: MapPin },
+  { id: 'finance', title: '資産・家計', icon: Wallet },
   { id: 'future', title: '今後の予定', icon: Rocket },
   { id: 'goals', title: '目標', icon: Target },
   { id: 'animal', title: 'アニマル', icon: Heart },
+  { id: 'agreement', title: '同意', icon: Shield },
 ];
 
 function determineLifeStage(answers: Partial<OnboardingAnswers>): LifeStage {
@@ -144,10 +155,26 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     occupation: '',
     annualIncome: 4000000,
     housingType: 'rent',
+    monthlyHousingCost: 80000,
+    currentSavings: 1000000,
+    monthlySavingsAmount: 30000,
+    investmentAssets: 0,
+    hasLifeInsurance: false,
+    hasHealthInsurance: false,
+    hasPensionInsurance: false,
+    hasIdeco: false,
+    hasNisa: false,
+    annualMedicalExpenses: 50000,
     goals: [],
     futurePlans: [],
     favoriteAnimal: 'dog',
   });
+  const [agreements, setAgreements] = useState({
+    termsOfService: false,
+    privacyPolicy: false,
+    disclaimerAcknowledged: false,
+  });
+  const [ageVerificationError, setAgeVerificationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const { setUser, setLifeStage, setOnboardingCompleted } = useAppStore();
@@ -194,7 +221,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         childrenAges: answers.childrenAges || [],
         housingType: (answers.housingType as HousingType) || 'rent',
         futurePlans: answers.futurePlans || [],
+        goals: answers.goals || [],
         favoriteAnimal: answers.favoriteAnimal || 'dog',
+        financialInfo: {
+          currentSavings: answers.currentSavings || 0,
+          monthlySavingsAmount: answers.monthlySavingsAmount || 0,
+          investmentAssets: answers.investmentAssets || 0,
+          monthlyHousingCost: answers.monthlyHousingCost || 0,
+          hasLifeInsurance: answers.hasLifeInsurance || false,
+          hasHealthInsurance: answers.hasHealthInsurance || false,
+          hasPensionInsurance: answers.hasPensionInsurance || false,
+          hasIdeco: answers.hasIdeco || false,
+          hasNisa: answers.hasNisa || false,
+          annualMedicalExpenses: answers.annualMedicalExpenses || 0,
+        },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -227,10 +267,33 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     }
   };
 
+  // 年齢計算関数
+  const calculateAge = (): number => {
+    if (!answers.birthYear || !answers.birthMonth || !answers.birthDay) return 0;
+    const today = new Date();
+    const birthDate = new Date(answers.birthYear, answers.birthMonth - 1, answers.birthDay);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // 18歳以上かどうかをチェック
+  const isAdult = (): boolean => {
+    return calculateAge() >= 18;
+  };
+
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 0: // Basic info
-        return !!(answers.name && answers.birthYear && answers.gender);
+        if (!answers.name || !answers.birthYear || !answers.gender) return false;
+        // 年齢確認：18歳未満の場合はエラー
+        if (!isAdult()) {
+          return false;
+        }
+        return true;
       case 1: // Contact
         return !!(answers.email && answers.email.includes('@'));
       case 2: // Family
@@ -239,12 +302,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         return !!answers.occupation && answers.annualIncome !== undefined;
       case 4: // Location
         return !!answers.prefecture && !!answers.housingType;
-      case 5: // Future Plans
+      case 5: // Finance
+        return answers.currentSavings !== undefined && answers.monthlyHousingCost !== undefined;
+      case 6: // Future Plans
         return !!(answers.futurePlans && answers.futurePlans.length > 0);
-      case 6: // Goals
+      case 7: // Goals
         return !!(answers.goals && answers.goals.length > 0);
-      case 7: // Animal
+      case 8: // Animal
         return !!answers.favoriteAnimal;
+      case 9: // Agreement
+        return agreements.termsOfService && agreements.privacyPolicy && agreements.disclaimerAcknowledged;
       default:
         return true;
     }
@@ -316,13 +383,22 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             <StepLocation answers={answers} updateAnswers={updateAnswers} />
           )}
           {currentStep === 5 && (
-            <StepFuturePlans answers={answers} updateAnswers={updateAnswers} />
+            <StepFinance answers={answers} updateAnswers={updateAnswers} />
           )}
           {currentStep === 6 && (
-            <StepGoals answers={answers} updateAnswers={updateAnswers} />
+            <StepFuturePlans answers={answers} updateAnswers={updateAnswers} />
           )}
           {currentStep === 7 && (
+            <StepGoals answers={answers} updateAnswers={updateAnswers} />
+          )}
+          {currentStep === 8 && (
             <StepAnimal answers={answers} updateAnswers={updateAnswers} />
+          )}
+          {currentStep === 9 && (
+            <StepAgreement
+              agreements={agreements}
+              setAgreements={setAgreements}
+            />
           )}
         </div>
 
@@ -371,9 +447,26 @@ function StepBasicInfo({
   updateAnswers: (updates: Partial<OnboardingAnswers>) => void;
 }) {
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 80 }, (_, i) => currentYear - 18 - i);
+  // 100年分の年を表示（18歳未満も選択可能だがエラー表示）
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  // 年齢計算
+  const calculateAge = (): number => {
+    if (!answers.birthYear || !answers.birthMonth || !answers.birthDay) return 0;
+    const today = new Date();
+    const birthDate = new Date(answers.birthYear, answers.birthMonth - 1, answers.birthDay);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const age = calculateAge();
+  const isUnder18 = age > 0 && age < 18;
 
   return (
     <div>
@@ -381,6 +474,21 @@ function StepBasicInfo({
       <p className="text-gray-600 mb-6">
         あなたに最適な情報をお届けするために、いくつかの質問にお答えください。
       </p>
+
+      {/* 年齢制限の注意書き */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-start gap-3">
+          <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm text-blue-800 font-medium">
+              本サービスは18歳以上の方を対象としています
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              法令に基づく情報提供サービスのため、ご了承ください。
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-6">
         <div>
@@ -408,7 +516,9 @@ function StepBasicInfo({
               <select
                 value={answers.birthYear || 1990}
                 onChange={(e) => updateAnswers({ birthYear: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  isUnder18 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                }`}
               >
                 {years.map((year) => (
                   <option key={year} value={year}>
@@ -421,7 +531,9 @@ function StepBasicInfo({
               <select
                 value={answers.birthMonth || 1}
                 onChange={(e) => updateAnswers({ birthMonth: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  isUnder18 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                }`}
               >
                 {months.map((month) => (
                   <option key={month} value={month}>
@@ -434,7 +546,9 @@ function StepBasicInfo({
               <select
                 value={answers.birthDay || 1}
                 onChange={(e) => updateAnswers({ birthDay: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  isUnder18 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                }`}
               >
                 {days.map((day) => (
                   <option key={day} value={day}>
@@ -444,6 +558,26 @@ function StepBasicInfo({
               </select>
             </div>
           </div>
+          {/* 18歳未満エラーメッセージ */}
+          {isUnder18 && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <p className="text-sm text-red-700 font-medium">
+                  本サービスは18歳以上の方のみご利用いただけます。
+                </p>
+              </div>
+              <p className="text-xs text-red-600 mt-1 ml-7">
+                金融商品取引法に基づく情報提供サービスのため、18歳未満の方はご利用いただけません。
+              </p>
+            </div>
+          )}
+          {/* 年齢表示 */}
+          {age > 0 && !isUnder18 && (
+            <p className="text-sm text-gray-500 mt-2">
+              現在 {age} 歳
+            </p>
+          )}
         </div>
 
         <div>
@@ -852,7 +986,230 @@ function StepLocation({
   );
 }
 
-// Step 6: Future Plans (今後の予定)
+// Step 6: Finance (資産・家計)
+function StepFinance({
+  answers,
+  updateAnswers,
+}: {
+  answers: Partial<OnboardingAnswers>;
+  updateAnswers: (updates: Partial<OnboardingAnswers>) => void;
+}) {
+  const formatCurrency = (value: number) => {
+    if (value >= 10000000) {
+      return `${(value / 10000000).toFixed(1)}千万円`;
+    }
+    if (value >= 10000) {
+      return `${(value / 10000).toFixed(0)}万円`;
+    }
+    return `${value.toLocaleString()}円`;
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">💰 資産・家計について教えてください</h2>
+      <p className="text-gray-600 mb-6">
+        あなたに最適な制度や節約方法をご案内するために必要な情報です。
+        <br />
+        <span className="text-sm text-blue-600">※ 入力いただいた情報は安全に保護されます</span>
+      </p>
+
+      <div className="space-y-6">
+        {/* 月々の住居費 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <CreditCard className="inline w-4 h-4 mr-1" />
+            月々の住居費（家賃/ローン）: {formatCurrency(answers.monthlyHousingCost || 80000)}
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="300000"
+            step="5000"
+            value={answers.monthlyHousingCost || 80000}
+            onChange={(e) => updateAnswers({ monthlyHousingCost: parseInt(e.target.value) })}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0円</span>
+            <span>30万円</span>
+          </div>
+        </div>
+
+        {/* 現在の貯蓄額 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <PiggyBank className="inline w-4 h-4 mr-1" />
+            現在の貯蓄額: {formatCurrency(answers.currentSavings || 0)}
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="50000000"
+            step="100000"
+            value={answers.currentSavings || 0}
+            onChange={(e) => updateAnswers({ currentSavings: parseInt(e.target.value) })}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0円</span>
+            <span>5,000万円</span>
+          </div>
+        </div>
+
+        {/* 月々の貯蓄額 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Wallet className="inline w-4 h-4 mr-1" />
+            月々の貯蓄額: {formatCurrency(answers.monthlySavingsAmount || 0)}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="500000"
+            step="5000"
+            value={answers.monthlySavingsAmount || 0}
+            onChange={(e) => updateAnswers({ monthlySavingsAmount: parseInt(e.target.value) })}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0円</span>
+            <span>50万円</span>
+          </div>
+        </div>
+
+        {/* 投資資産 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <TrendingUp className="inline w-4 h-4 mr-1" />
+            投資資産（株式、投資信託など）: {formatCurrency(answers.investmentAssets || 0)}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100000000"
+            step="100000"
+            value={answers.investmentAssets || 0}
+            onChange={(e) => updateAnswers({ investmentAssets: parseInt(e.target.value) })}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0円</span>
+            <span>1億円</span>
+          </div>
+        </div>
+
+        {/* 保険加入状況 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <Shield className="inline w-4 h-4 mr-1" />
+            保険加入状況
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+              answers.hasLifeInsurance ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={answers.hasLifeInsurance || false}
+                onChange={(e) => updateAnswers({ hasLifeInsurance: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">生命保険</span>
+            </label>
+            <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+              answers.hasHealthInsurance ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={answers.hasHealthInsurance || false}
+                onChange={(e) => updateAnswers({ hasHealthInsurance: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">医療保険</span>
+            </label>
+            <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+              answers.hasPensionInsurance ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={answers.hasPensionInsurance || false}
+                onChange={(e) => updateAnswers({ hasPensionInsurance: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">個人年金保険</span>
+            </label>
+          </div>
+        </div>
+
+        {/* iDeCo/NISA */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <TrendingUp className="inline w-4 h-4 mr-1" />
+            税制優遇制度の利用
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+              answers.hasIdeco ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={answers.hasIdeco || false}
+                onChange={(e) => updateAnswers({ hasIdeco: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300"
+              />
+              <div>
+                <span className="text-sm font-medium">iDeCo</span>
+                <p className="text-xs text-gray-500">個人型確定拠出年金</p>
+              </div>
+            </label>
+            <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+              answers.hasNisa ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input
+                type="checkbox"
+                checked={answers.hasNisa || false}
+                onChange={(e) => updateAnswers({ hasNisa: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300"
+              />
+              <div>
+                <span className="text-sm font-medium">NISA</span>
+                <p className="text-xs text-gray-500">少額投資非課税制度</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* 年間医療費 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Stethoscope className="inline w-4 h-4 mr-1" />
+            年間医療費（目安）: {formatCurrency(answers.annualMedicalExpenses || 0)}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="500000"
+            step="10000"
+            value={answers.annualMedicalExpenses || 0}
+            onChange={(e) => updateAnswers({ annualMedicalExpenses: parseInt(e.target.value) })}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0円</span>
+            <span>50万円</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            💡 年間10万円を超える場合、医療費控除を受けられる可能性があります
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Step 7: Future Plans (今後の予定)
 function StepFuturePlans({
   answers,
   updateAnswers,
@@ -912,7 +1269,7 @@ function StepFuturePlans({
   );
 }
 
-// Step 7: Goals
+// Step 8: Goals
 function StepGoals({
   answers,
   updateAnswers,
@@ -964,7 +1321,7 @@ function StepGoals({
   );
 }
 
-// Step 8: Animal Selection (動物キャラクター選択)
+// Step 9: Animal Selection (動物キャラクター選択)
 function StepAnimal({
   answers,
   updateAnswers,
@@ -1037,6 +1394,181 @@ function StepAnimal({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Step 10: Agreement - 同意確認（CLO要件）
+function StepAgreement({
+  agreements,
+  setAgreements,
+}: {
+  agreements: {
+    termsOfService: boolean;
+    privacyPolicy: boolean;
+    disclaimerAcknowledged: boolean;
+  };
+  setAgreements: React.Dispatch<React.SetStateAction<{
+    termsOfService: boolean;
+    privacyPolicy: boolean;
+    disclaimerAcknowledged: boolean;
+  }>>;
+}) {
+  return (
+    <div className="space-y-6">
+      {/* 免責事項表示（CLO定義） */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-amber-800 mb-2">重要なお知らせ</h3>
+            <p className="text-sm text-amber-700">
+              本サービスをご利用いただく前に、以下の同意事項をご確認ください。
+              すべての項目に同意いただくことで、サービスをご利用いただけます。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 免責事項詳細 */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-48 overflow-y-auto">
+        <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          免責事項
+        </h4>
+        <div className="text-xs text-gray-600 space-y-2">
+          <p>
+            <strong>■ 情報提供の性質</strong><br />
+            本サービスで提供される情報は、一般的な参考情報として提供されるものであり、
+            法律上、税務上、または財務上の専門的なアドバイスを構成するものではありません。
+          </p>
+          <p>
+            <strong>■ 正確性の限界</strong><br />
+            本サービスで提供される法令情報等は、可能な限り正確な情報の提供に努めておりますが、
+            法令の改正等により最新の情報でない場合があります。
+          </p>
+          <p>
+            <strong>■ 専門家への相談推奨</strong><br />
+            具体的なご判断については、弁護士、税理士、ファイナンシャルプランナー等の
+            専門家にご相談されることをお勧めいたします。
+          </p>
+          <p>
+            <strong>■ 投資助言の否定</strong><br />
+            本サービスは金融商品取引法に基づく投資助言・代理業には該当しません。
+            投資に関する最終的なご判断は、ご自身の責任において行ってください。
+          </p>
+          <p>
+            <strong>■ 損害に対する責任の制限</strong><br />
+            本サービスの利用により生じたいかなる損害についても、
+            当社は法令上許容される最大限の範囲において責任を負いません。
+          </p>
+        </div>
+      </div>
+
+      {/* 同意チェックボックス */}
+      <div className="space-y-4">
+        <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+          <input
+            type="checkbox"
+            checked={agreements.termsOfService}
+            onChange={(e) => setAgreements(prev => ({ ...prev, termsOfService: e.target.checked }))}
+            className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          />
+          <div className="flex-1">
+            <span className="font-medium text-gray-800">
+              利用規約に同意します
+              <span className="text-red-500 ml-1">*</span>
+            </span>
+            <p className="text-sm text-gray-500 mt-1">
+              サービスの利用条件、禁止事項、知的財産権等について確認しました。
+            </p>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 mt-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              利用規約を読む <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+          <input
+            type="checkbox"
+            checked={agreements.privacyPolicy}
+            onChange={(e) => setAgreements(prev => ({ ...prev, privacyPolicy: e.target.checked }))}
+            className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          />
+          <div className="flex-1">
+            <span className="font-medium text-gray-800">
+              プライバシーポリシーに同意します
+              <span className="text-red-500 ml-1">*</span>
+            </span>
+            <p className="text-sm text-gray-500 mt-1">
+              個人情報の取得・利用目的、第三者提供、セキュリティ対策について確認しました。
+            </p>
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 mt-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              プライバシーポリシーを読む <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+          <input
+            type="checkbox"
+            checked={agreements.disclaimerAcknowledged}
+            onChange={(e) => setAgreements(prev => ({ ...prev, disclaimerAcknowledged: e.target.checked }))}
+            className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          />
+          <div className="flex-1">
+            <span className="font-medium text-gray-800">
+              上記の免責事項を確認し、理解しました
+              <span className="text-red-500 ml-1">*</span>
+            </span>
+            <p className="text-sm text-gray-500 mt-1">
+              本サービスが専門的なアドバイスを提供するものではないこと、
+              重要な判断については専門家に相談すべきことを理解しました。
+            </p>
+          </div>
+        </label>
+      </div>
+
+      {/* 同意状況サマリー */}
+      <div className={`p-4 rounded-xl border ${
+        agreements.termsOfService && agreements.privacyPolicy && agreements.disclaimerAcknowledged
+          ? 'bg-green-50 border-green-200'
+          : 'bg-gray-50 border-gray-200'
+      }`}>
+        <div className="flex items-center gap-3">
+          <Shield className={`w-6 h-6 ${
+            agreements.termsOfService && agreements.privacyPolicy && agreements.disclaimerAcknowledged
+              ? 'text-green-600'
+              : 'text-gray-400'
+          }`} />
+          <div>
+            <p className={`font-medium ${
+              agreements.termsOfService && agreements.privacyPolicy && agreements.disclaimerAcknowledged
+                ? 'text-green-800'
+                : 'text-gray-600'
+            }`}>
+              {agreements.termsOfService && agreements.privacyPolicy && agreements.disclaimerAcknowledged
+                ? 'すべての同意事項を確認しました'
+                : '上記のすべての項目に同意してください'}
+            </p>
+            <p className="text-sm text-gray-500">
+              同意済み: {[agreements.termsOfService, agreements.privacyPolicy, agreements.disclaimerAcknowledged].filter(Boolean).length} / 3
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

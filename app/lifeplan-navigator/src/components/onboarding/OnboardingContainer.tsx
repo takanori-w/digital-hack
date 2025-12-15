@@ -115,11 +115,13 @@ function determineLifeStage(
   }
 
   // New graduate (young single, recently started working)
+  // Only reaches here if: no children, no spouse, no family household type
   if (age && age >= 22 && age <= 25) {
     return 'new_graduate';
   }
 
-  // Default: working single
+  // Default: working single (only for truly single people)
+  // Only reaches here if: householdType is SINGLE, OTHER, or null
   return 'working_single';
 }
 

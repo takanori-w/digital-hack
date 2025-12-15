@@ -1,0 +1,29 @@
+# ==============================================================================
+# LifePlan Navigator - Production Environment Variables
+# Copy this file to terraform.tfvars and fill in the values
+# ==============================================================================
+
+# Project Configuration
+project_name = "lifeplan"
+aws_region   = "ap-northeast-1"
+
+# Network Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["ap-northeast-1a", "ap-northeast-1c", "ap-northeast-1d"]
+az_suffixes        = ["a", "c", "d"]
+
+# Bastion Configuration
+enable_bastion  = true
+admin_vpn_cidrs = ["YOUR_VPN_CIDR/24"]
+
+# WAF Configuration
+blocked_ip_addresses   = []
+enable_geo_restriction = false
+allowed_countries      = ["JP"]
+
+# Domain Configuration
+domain_name        = "lifeplan-navigator.example.com"
+cloudfront_aliases = ["lifeplan-navigator.example.com", "www.lifeplan-navigator.example.com"]
+
+# Security (sensitive - do not commit actual values)
+origin_verify_header = "CHANGE_THIS_TO_A_SECURE_RANDOM_STRING"

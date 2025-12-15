@@ -1,0 +1,94 @@
+# ==============================================================================
+# LifePlan Navigator - Docker Compose for Production Build Testing
+# Use this for building and testing production images locally
+# ==============================================================================
+
+version: '3.9'
+
+services:
+  # --------------------------------------------------------------------------
+  # Frontend (Production Build)
+  # --------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ../../app/frontend
+      dockerfile: ../../infrastructure/docker/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_ENVIRONMENT: production
+    image: lifeplan-frontend:${IMAGE_TAG:-latest}
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - lifeplan-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # --------------------------------------------------------------------------
+  # Backend (Production Build)
+  # --------------------------------------------------------------------------
+  backend:
+    build:
+      context: ../../app/backend
+      dockerfile: ../../infrastructure/docker/Dockerfile.backend
+    image: lifeplan-backend:${IMAGE_TAG:-latest}
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    restart: unless-stopped
+    networks:
+      - lifeplan-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # --------------------------------------------------------------------------
+  # Worker (Production Build)
+  # --------------------------------------------------------------------------
+  worker:
+    build:
+      context: ../../app/backend
+      dockerfile: ../../infrastructure/docker/Dockerfile.worker
+    image: lifeplan-worker:${IMAGE_TAG:-latest}
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    restart: unless-stopped
+    networks:
+      - lifeplan-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  lifeplan-network:
+    driver: bridge

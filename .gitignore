@@ -1,0 +1,43 @@
+# Temporary files
+tmp/
+*.log
+
+# Logs
+logs/
+*.txt
+
+# Workspace
+# プロダクトファイルは別リポジトリで管理（完全除外）
+# workspace/README.md は setup.sh で自動生成されます
+workspace/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules (if using Node.js)
+node_modules/
+package-lock.json
+
+# Python (if using Python)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# tmux files (optional)
+.tmux/

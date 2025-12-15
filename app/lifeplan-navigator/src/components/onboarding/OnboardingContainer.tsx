@@ -59,6 +59,7 @@ const initialState: OnboardingState = {
 function determineLifeStage(
   age: number | null,
   employmentType: EmploymentType | null,
+  householdType: HouseholdType | null,
   hasSpouse: boolean | null,
   children: Child[],
   plannedEvents: PlannedEvent[]
@@ -78,14 +79,19 @@ function determineLifeStage(
     return 'pre_retirement';
   }
 
-  // Has children
-  if (children.length > 0) {
+  // Has children - check both children array AND household type
+  const hasChildrenByType =
+    householdType === HouseholdType.FAMILY_WITH_CHILDREN ||
+    householdType === HouseholdType.SINGLE_PARENT ||
+    householdType === HouseholdType.THREE_GENERATION;
+
+  if (children.length > 0 || hasChildrenByType) {
     // Check if any child is in education age (6-22)
     const hasEducationAgeChild = children.some(c => c.age >= 6 && c.age <= 22);
     if (hasEducationAgeChild) {
       return 'child_education';
     }
-    // Child rearing (young children)
+    // Child rearing (default for families with children)
     return 'child_rearing';
   }
 
@@ -94,12 +100,8 @@ function determineLifeStage(
     return 'expecting';
   }
 
-  // Married without children
-  if (hasSpouse === true) {
-    // Check if planning marriage (newlywed)
-    if (plannedEvents.includes(PlannedEvent.MARRIAGE)) {
-      return 'newlywed';
-    }
+  // Married/Couple without children
+  if (hasSpouse === true || householdType === HouseholdType.COUPLE) {
     // Empty nest (older couple without children at home)
     if (age && age >= 50) {
       return 'empty_nest';
@@ -277,6 +279,7 @@ export default function OnboardingContainer() {
       const lifeStage = determineLifeStage(
         state.step1.age,
         state.step1.employmentType,
+        state.step3.householdType,
         state.step3.hasSpouse,
         state.step3.children,
         state.step4.plannedEvents

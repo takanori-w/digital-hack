@@ -289,17 +289,8 @@ export default function OnboardingContainer() {
         body: JSON.stringify({ section: 'onboarding', data: { completed: true } }),
       });
 
-      // Determine life stage based on user data
-      const lifeStage = determineLifeStage(
-        state.step1.age,
-        state.step1.employmentType,
-        state.step3.householdType,
-        state.step3.hasSpouse,
-        state.step3.children,
-        state.step4.plannedEvents
-      );
-
       // Update Zustand store with user profile, onboarding status, and life stage
+      // Note: lifeStage is already determined above for animal recommendation
       setUser(userProfile);
       setOnboardingCompleted(true);
       setLifeStage(lifeStage);

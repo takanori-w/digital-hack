@@ -95,12 +95,23 @@ export default function SettingsPanel() {
     name: user?.name || '',
     email: user?.email || '',
     prefecture: user?.prefecture || '東京都',
+    residencePrefecture: user?.residencePrefecture || user?.prefecture || '東京都',
+    workPrefecture: user?.workPrefecture || user?.prefecture || '東京都',
     city: user?.city || '',
     occupation: user?.occupation || '',
     annualIncome: user?.annualIncome || 4000000,
     housingType: user?.housingType || 'rent',
     futurePlans: user?.futurePlans || [],
     favoriteAnimal: user?.favoriteAnimal || 'dog',
+    // 家族情報
+    householdSize: user?.householdSize || 1,
+    maritalStatus: user?.maritalStatus || 'single',
+    hasChildren: user?.hasChildren || false,
+    numberOfChildren: user?.numberOfChildren || 0,
+    childrenAges: user?.childrenAges || [],
+    // 生年月日・性別
+    birthDate: user?.birthDate || '',
+    gender: user?.gender || 'other',
   });
 
   const formatCurrency = (amount: number) => {
@@ -111,13 +122,24 @@ export default function SettingsPanel() {
     updateUser({
       name: profileEdit.name,
       email: profileEdit.email,
-      prefecture: profileEdit.prefecture,
+      prefecture: profileEdit.residencePrefecture, // 後方互換性のため在住都道府県と同期
+      residencePrefecture: profileEdit.residencePrefecture,
+      workPrefecture: profileEdit.workPrefecture,
       city: profileEdit.city,
       occupation: profileEdit.occupation,
       annualIncome: profileEdit.annualIncome,
       housingType: profileEdit.housingType as HousingType,
       futurePlans: profileEdit.futurePlans,
       favoriteAnimal: profileEdit.favoriteAnimal as AnimalType,
+      // 家族情報
+      householdSize: profileEdit.householdSize,
+      maritalStatus: profileEdit.maritalStatus as 'single' | 'married' | 'divorced' | 'widowed',
+      hasChildren: profileEdit.hasChildren,
+      numberOfChildren: profileEdit.numberOfChildren,
+      childrenAges: profileEdit.childrenAges,
+      // 生年月日・性別
+      birthDate: profileEdit.birthDate,
+      gender: profileEdit.gender as 'male' | 'female' | 'other',
     });
     setEditMode(false);
     setSaveSuccess(true);
@@ -307,16 +329,16 @@ export default function SettingsPanel() {
                 </div>
               </div>
 
-              {/* Location */}
+              {/* Location - Residence */}
               <div className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-gray-400" />
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500">お住まい</label>
+                  <label className="text-xs text-gray-500">在住都道府県</label>
                   {editMode ? (
                     <div className="grid grid-cols-2 gap-2">
                       <select
-                        value={profileEdit.prefecture}
-                        onChange={(e) => setProfileEdit({ ...profileEdit, prefecture: e.target.value })}
+                        value={profileEdit.residencePrefecture}
+                        onChange={(e) => setProfileEdit({ ...profileEdit, residencePrefecture: e.target.value })}
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       >
                         {PREFECTURES.map((pref) => (
@@ -332,7 +354,28 @@ export default function SettingsPanel() {
                       />
                     </div>
                   ) : (
-                    <p className="text-gray-900">{user?.prefecture} {user?.city}</p>
+                    <p className="text-gray-900">{user?.residencePrefecture || user?.prefecture} {user?.city}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Location - Work */}
+              <div className="flex items-center gap-3">
+                <Briefcase className="w-5 h-5 text-gray-400" />
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">勤務先都道府県</label>
+                  {editMode ? (
+                    <select
+                      value={profileEdit.workPrefecture}
+                      onChange={(e) => setProfileEdit({ ...profileEdit, workPrefecture: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      {PREFECTURES.map((pref) => (
+                        <option key={pref} value={pref}>{pref}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-gray-900">{user?.workPrefecture || user?.prefecture || '未設定'}</p>
                   )}
                 </div>
               </div>
@@ -411,12 +454,194 @@ export default function SettingsPanel() {
                 </div>
               </div>
 
-              {/* Family */}
+              {/* Family - Household Size */}
               <div className="flex items-center gap-3">
                 <Users className="w-5 h-5 text-gray-400" />
                 <div className="flex-1">
                   <label className="text-xs text-gray-500">世帯人数</label>
-                  <p className="text-gray-900">{user?.householdSize}人</p>
+                  {editMode ? (
+                    <select
+                      value={profileEdit.householdSize}
+                      onChange={(e) => setProfileEdit({ ...profileEdit, householdSize: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <option key={num} value={num}>{num}人</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-gray-900">{user?.householdSize}人</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Family - Marital Status */}
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-gray-400" />
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">婚姻状況</label>
+                  {editMode ? (
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { value: 'single' as const, label: '未婚' },
+                        { value: 'married' as const, label: '既婚' },
+                        { value: 'divorced' as const, label: '離婚' },
+                        { value: 'widowed' as const, label: '死別' },
+                      ]).map((status) => (
+                        <button
+                          key={status.value}
+                          onClick={() => setProfileEdit({ ...profileEdit, maritalStatus: status.value })}
+                          className={`px-3 py-1 rounded-lg border text-sm ${
+                            profileEdit.maritalStatus === status.value
+                              ? 'border-blue-600 bg-blue-50 text-blue-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {status.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-900">
+                      {{
+                        single: '未婚',
+                        married: '既婚',
+                        divorced: '離婚',
+                        widowed: '死別',
+                      }[user?.maritalStatus || 'single'] || '-'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Family - Children */}
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-gray-400" />
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">お子さまの有無・人数</label>
+                  {editMode ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={profileEdit.hasChildren}
+                            onChange={(e) => setProfileEdit({
+                              ...profileEdit,
+                              hasChildren: e.target.checked,
+                              numberOfChildren: e.target.checked ? (profileEdit.numberOfChildren || 1) : 0,
+                              childrenAges: e.target.checked ? profileEdit.childrenAges : [],
+                            })}
+                            className="w-4 h-4 text-blue-600 rounded"
+                          />
+                          <span className="text-sm">子供あり</span>
+                        </label>
+                      </div>
+                      {profileEdit.hasChildren && (
+                        <div className="ml-6 space-y-2">
+                          <select
+                            value={profileEdit.numberOfChildren}
+                            onChange={(e) => {
+                              const num = parseInt(e.target.value);
+                              const currentAges = profileEdit.childrenAges || [];
+                              const newAges = [...currentAges];
+                              while (newAges.length < num) newAges.push(0);
+                              while (newAges.length > num) newAges.pop();
+                              setProfileEdit({
+                                ...profileEdit,
+                                numberOfChildren: num,
+                                childrenAges: newAges,
+                              });
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          >
+                            {[1, 2, 3, 4, 5].map((num) => (
+                              <option key={num} value={num}>{num}人</option>
+                            ))}
+                          </select>
+                          <div className="flex flex-wrap gap-2">
+                            {(profileEdit.childrenAges || []).map((age, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500">{idx + 1}人目:</span>
+                                <select
+                                  value={age}
+                                  onChange={(e) => {
+                                    const newAges = [...profileEdit.childrenAges];
+                                    newAges[idx] = parseInt(e.target.value);
+                                    setProfileEdit({ ...profileEdit, childrenAges: newAges });
+                                  }}
+                                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                                >
+                                  {Array.from({ length: 30 }, (_, i) => (
+                                    <option key={i} value={i}>{i}歳</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-900">
+                      {user?.hasChildren
+                        ? `${user?.numberOfChildren}人 (${(user?.childrenAges || []).map(a => `${a}歳`).join(', ')})`
+                        : 'なし'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Birth Date */}
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-gray-400" />
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">生年月日</label>
+                  {editMode ? (
+                    <input
+                      type="date"
+                      value={profileEdit.birthDate}
+                      onChange={(e) => setProfileEdit({ ...profileEdit, birthDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  ) : (
+                    <p className="text-gray-900">
+                      {user?.birthDate ? new Date(user.birthDate).toLocaleDateString('ja-JP') : '-'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Gender */}
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-gray-400" />
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">性別</label>
+                  {editMode ? (
+                    <div className="flex gap-2">
+                      {([
+                        { value: 'male' as const, label: '男性' },
+                        { value: 'female' as const, label: '女性' },
+                        { value: 'other' as const, label: 'その他' },
+                      ]).map((g) => (
+                        <button
+                          key={g.value}
+                          onClick={() => setProfileEdit({ ...profileEdit, gender: g.value })}
+                          className={`px-3 py-1 rounded-lg border text-sm ${
+                            profileEdit.gender === g.value
+                              ? 'border-blue-600 bg-blue-50 text-blue-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-900">
+                      {{ male: '男性', female: '女性', other: 'その他' }[user?.gender || 'other'] || '-'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -40,9 +40,25 @@ export default function Dashboard() {
 
   const currentStageInfo = lifeStages.find((s) => s.stage === currentLifeStage);
 
-  // ユーザーに関連するお得情報をフィルタリング
+  // ユーザーに関連するお得情報をフィルタリング（ライフステージ + 都道府県）
   const relevantBenefits = mockBenefits
-    .filter((b) => b.targetLifeStages.includes(currentLifeStage))
+    .filter((b) => {
+      // ライフステージでフィルタリング
+      if (!b.targetLifeStages.includes(currentLifeStage)) {
+        return false;
+      }
+      // 都道府県でフィルタリング（全国 OR 在住都道府県 OR 勤務先都道府県に該当）
+      const targetPrefectures = b.targetPrefectures || [];
+      if (targetPrefectures.length === 0 || targetPrefectures.includes('全国')) {
+        return true;
+      }
+      // ユーザーの在住・勤務先都道府県をチェック
+      const userResidence = user?.residencePrefecture || user?.prefecture || '';
+      const userWork = user?.workPrefecture || '';
+      return targetPrefectures.some(pref =>
+        pref === userResidence || pref === userWork
+      );
+    })
     .slice(0, 4);
 
   // 潜在的な節約額を計算

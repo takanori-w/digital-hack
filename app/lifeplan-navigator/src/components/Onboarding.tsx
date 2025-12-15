@@ -211,6 +211,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         birthDate,
         gender: answers.gender || 'male',
         prefecture: answers.prefecture || '東京都',
+        residencePrefecture: answers.prefecture || '東京都',
+        workPrefecture: answers.workPrefecture || '',
         city: answers.city || '',
         occupation: answers.occupation || '',
         annualIncome: answers.annualIncome || 0,

@@ -332,7 +332,7 @@ export default function LawsPanel({
                         )}
 
                         <a
-                          href={`https://elaws.e-gov.go.jp/search/elawsSearch/elaws_search/lsg0500/viewContents?lawId=${rec.law_id}`}
+                          href={`https://elaws.e-gov.go.jp/document?lawid=${rec.law_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-3 inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"

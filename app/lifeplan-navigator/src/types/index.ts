@@ -49,7 +49,9 @@ export interface UserProfile {
   email: string;
   birthDate: string;
   gender: 'male' | 'female' | 'other';
-  prefecture: string;
+  prefecture: string;  // 後方互換性のため残す（在住都道府県と同期）
+  residencePrefecture: string;  // 在住都道府県
+  workPrefecture: string;       // 勤務先都道府県
   city: string;
   occupation: string;
   annualIncome: number;
@@ -229,7 +231,9 @@ export interface OnboardingAnswers {
   birthDay: number;
   gender: UserProfile['gender'];
   // 住所情報
-  prefecture: string;
+  prefecture: string;  // 後方互換性のため残す（在住都道府県と同期）
+  residencePrefecture: string;  // 在住都道府県
+  workPrefecture: string;       // 勤務先都道府県
   city: string;
   // 家族構成
   maritalStatus: UserProfile['maritalStatus'];

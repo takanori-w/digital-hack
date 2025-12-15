@@ -18,6 +18,7 @@ import { ProgressBar } from './ProgressBar';
 import { StepHeader } from './StepHeader';
 import { NavigationButtons } from './NavigationButtons';
 import { SelectableCard } from './SelectableCard';
+import { ChildrenInput } from './ChildrenInput';
 import { EmploymentTypeLabels, ResidenceTypeLabels, HouseholdTypeLabels, PlannedEventLabels } from '@/types/onboarding';
 
 const TOTAL_STEPS = 4;
@@ -47,7 +48,7 @@ const PREFECTURES = [
 const initialState: OnboardingState = {
   currentStep: 1,
   step1: { age: null, employmentType: null },
-  step2: { residenceType: null, region: null },
+  step2: { residenceType: null, region: null, residencePrefecture: null, workPrefecture: null },
   step3: { householdType: null, hasSpouse: null, children: [] },
   step4: { plannedEvents: [], email: '', emailNotificationEnabled: false }
 };
@@ -89,7 +90,7 @@ export default function OnboardingContainer() {
       case 1:
         return state.step1.age !== null && state.step1.employmentType !== null;
       case 2:
-        return state.step2.residenceType !== null;
+        return state.step2.residenceType !== null && state.step2.residencePrefecture !== null;
       case 3:
         return state.step3.householdType !== null;
       case 4:
@@ -136,6 +137,8 @@ export default function OnboardingContainer() {
           employmentType: state.step1.employmentType,
           residenceType: state.step2.residenceType,
           region: state.step2.region,
+          residencePrefecture: state.step2.residencePrefecture,
+          workPrefecture: state.step2.workPrefecture,
           householdType: state.step3.householdType,
           hasSpouse: state.step3.hasSpouse ?? false,
           children: state.step3.children,
@@ -158,7 +161,9 @@ export default function OnboardingContainer() {
         email: state.step4.email || '',
         birthDate: state.step1.age ? `${new Date().getFullYear() - state.step1.age}-01-01` : '',
         gender: 'male' as const,
-        prefecture: state.step2.region || '東京都',
+        prefecture: state.step2.residencePrefecture || state.step2.region || '東京都',
+        residencePrefecture: state.step2.residencePrefecture || '東京都',
+        workPrefecture: state.step2.workPrefecture || '',
         city: '',
         occupation: mapEmploymentTypeToOccupation(state.step1.employmentType),
         annualIncome: 4000000,
@@ -327,11 +332,14 @@ export default function OnboardingContainer() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                居住地域 <span className="text-gray-400 text-xs">(任意)</span>
+                在住都道府県 <span className="text-red-500">*</span>
               </label>
               <select
-                value={state.step2.region ?? ''}
-                onChange={(e) => updateStep2({ region: e.target.value || null })}
+                value={state.step2.residencePrefecture ?? ''}
+                onChange={(e) => updateStep2({
+                  residencePrefecture: e.target.value || null,
+                  region: e.target.value || null // For backward compatibility
+                })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">選択してください</option>
@@ -339,6 +347,23 @@ export default function OnboardingContainer() {
                   <option key={pref} value={pref}>{pref}</option>
                 ))}
               </select>
+              <p className="mt-1 text-xs text-gray-500">地域に合った補助金・制度を表示するために使用します</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                勤務先都道府県 <span className="text-gray-400 text-xs">(任意)</span>
+              </label>
+              <select
+                value={state.step2.workPrefecture ?? ''}
+                onChange={(e) => updateStep2({ workPrefecture: e.target.value || null })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">選択してください</option>
+                {PREFECTURES.map(pref => (
+                  <option key={pref} value={pref}>{pref}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">勤務先の地域に合った制度も表示できます</p>
             </div>
           </div>
         );
@@ -393,6 +418,14 @@ export default function OnboardingContainer() {
                   </button>
                 </div>
               </div>
+            )}
+            {state.step3.householdType &&
+             state.step3.householdType !== HouseholdType.SINGLE &&
+             state.step3.householdType !== HouseholdType.COUPLE && (
+              <ChildrenInput
+                children={state.step3.children}
+                onChange={(children) => updateStep3({ children })}
+              />
             )}
           </div>
         );

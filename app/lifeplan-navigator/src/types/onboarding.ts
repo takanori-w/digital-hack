@@ -139,7 +139,9 @@ export interface Step1Data {
 
 export interface Step2Data {
   residenceType: ResidenceType | null
-  region: string | null
+  region: string | null // For backward compatibility
+  residencePrefecture: string | null // 在住都道府県
+  workPrefecture: string | null // 勤務先都道府県
 }
 
 export interface Step3Data {

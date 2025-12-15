@@ -202,6 +202,50 @@ export async function getLawContent(
   }
 }
 
+// Mapping of law titles to e-Gov law IDs and law numbers
+// e-Gov URL format: https://elaws.e-gov.go.jp/document?lawid={lawId}
+const LAW_INFO_MAP: Record<string, { lawId: string; lawNum: string }> = {
+  '労働基準法': { lawId: '322AC0000000049', lawNum: '昭和二十二年法律第四十九号' },
+  '厚生年金保険法': { lawId: '329AC0000000115', lawNum: '昭和二十九年法律第百十五号' },
+  '雇用保険法': { lawId: '349AC0000000116', lawNum: '昭和四十九年法律第百十六号' },
+  '所得税法': { lawId: '340AC0000000033', lawNum: '昭和四十年法律第三十三号' },
+  '国民健康保険法': { lawId: '333AC0000000192', lawNum: '昭和三十三年法律第百九十二号' },
+  '国民年金法': { lawId: '334AC0000000141', lawNum: '昭和三十四年法律第百四十一号' },
+  '介護保険法': { lawId: '409AC0000000123', lawNum: '平成九年法律第百二十三号' },
+  '育児休業法': { lawId: '403AC0000000076', lawNum: '平成三年法律第七十六号' },
+  '相続税法': { lawId: '325AC0000000073', lawNum: '昭和二十五年法律第七十三号' },
+  '借地借家法': { lawId: '403AC0000000090', lawNum: '平成三年法律第九十号' },
+  '消費税法': { lawId: '363AC0000000108', lawNum: '昭和六十三年法律第百八号' },
+  '健康保険法': { lawId: '311AC0000000070', lawNum: '大正十一年法律第七十号' },
+  '国家公務員法': { lawId: '322AC0000000120', lawNum: '昭和二十二年法律第百二十号' },
+  '地方公務員法': { lawId: '325AC0000000261', lawNum: '昭和二十五年法律第二百六十一号' },
+  '労働契約法': { lawId: '419AC0000000128', lawNum: '平成十九年法律第百二十八号' },
+  '労働者派遣法': { lawId: '360AC0000000088', lawNum: '昭和六十年法律第八十八号' },
+  '確定拠出年金法': { lawId: '413AC0000000088', lawNum: '平成十三年法律第八十八号' },
+  '児童手当法': { lawId: '346AC0000000073', lawNum: '昭和四十六年法律第七十三号' },
+  '租税特別措置法': { lawId: '332AC0000000026', lawNum: '昭和三十二年法律第二十六号' },
+  '不動産取得税': { lawId: '325AC0000000226', lawNum: '昭和二十五年法律第二百二十六号' },
+  '登録免許税法': { lawId: '342AC0000000035', lawNum: '昭和四十二年法律第三十五号' },
+  '高齢者雇用安定法': { lawId: '346AC0000000068', lawNum: '昭和四十六年法律第六十八号' },
+  '公営住宅法': { lawId: '326AC0000000193', lawNum: '昭和二十六年法律第百九十三号' },
+};
+
+/**
+ * Get e-Gov law ID from law title
+ */
+function getLawIdFromTitle(lawTitle: string): string {
+  const info = LAW_INFO_MAP[lawTitle];
+  return info?.lawId || '';
+}
+
+/**
+ * Get law number from law title
+ */
+function getLawNumFromTitle(lawTitle: string): string {
+  const info = LAW_INFO_MAP[lawTitle];
+  return info?.lawNum || '';
+}
+
 /**
  * Get law recommendations based on user profile
  */
@@ -219,10 +263,11 @@ export function getLawRecommendations(
     employmentLaws.forEach((lawTitle, index) => {
       if (!addedLaws.has(lawTitle)) {
         addedLaws.add(lawTitle);
+        const lawId = getLawIdFromTitle(lawTitle);
         recommendations.push({
-          law_id: `emp_${employmentType}_${index}`,
+          law_id: lawId || `emp_${employmentType}_${index}`,
           law_title: lawTitle,
-          law_num: '',
+          law_num: getLawNumFromTitle(lawTitle),
           relevance_reason: getEmploymentRelevanceReason(employmentType),
           relevance_score: 0.9 - index * 0.1,
           category: getEmploymentCategory(lawTitle),
@@ -241,10 +286,11 @@ export function getLawRecommendations(
       eventLaws.forEach((lawTitle, index) => {
         if (!addedLaws.has(lawTitle)) {
           addedLaws.add(lawTitle);
+          const lawId = getLawIdFromTitle(lawTitle);
           recommendations.push({
-            law_id: `event_${event}_${index}`,
+            law_id: lawId || `event_${event}_${index}`,
             law_title: lawTitle,
-            law_num: '',
+            law_num: getLawNumFromTitle(lawTitle),
             relevance_reason: getEventRelevanceReason(event),
             relevance_score: 0.85 - index * 0.1,
             category: categories[0] || 'other',
@@ -261,10 +307,11 @@ export function getLawRecommendations(
     residenceLaws.forEach((lawTitle, index) => {
       if (!addedLaws.has(lawTitle)) {
         addedLaws.add(lawTitle);
+        const lawId = getLawIdFromTitle(lawTitle);
         recommendations.push({
-          law_id: `res_${residenceType}_${index}`,
+          law_id: lawId || `res_${residenceType}_${index}`,
           law_title: lawTitle,
-          law_num: '',
+          law_num: getLawNumFromTitle(lawTitle),
           relevance_reason: getResidenceRelevanceReason(residenceType),
           relevance_score: 0.7 - index * 0.1,
           category: 'housing',

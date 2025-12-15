@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
+import { LifeStage } from '@/types';
 import {
   OnboardingState,
   Step1Data,
@@ -12,7 +13,8 @@ import {
   EmploymentType,
   ResidenceType,
   HouseholdType,
-  PlannedEvent
+  PlannedEvent,
+  Child
 } from '@/types/onboarding';
 import { ProgressBar } from './ProgressBar';
 import { StepHeader } from './StepHeader';
@@ -53,9 +55,75 @@ const initialState: OnboardingState = {
   step4: { plannedEvents: [], email: '', emailNotificationEnabled: false }
 };
 
+// Determine life stage based on user data
+function determineLifeStage(
+  age: number | null,
+  employmentType: EmploymentType | null,
+  hasSpouse: boolean | null,
+  children: Child[],
+  plannedEvents: PlannedEvent[]
+): LifeStage {
+  // Student
+  if (employmentType === EmploymentType.STUDENT) {
+    return 'student';
+  }
+
+  // Retired
+  if (employmentType === EmploymentType.RETIRED || (age && age >= 65)) {
+    return 'retired';
+  }
+
+  // Pre-retirement (55-64 years old)
+  if (age && age >= 55 && age < 65) {
+    return 'pre_retirement';
+  }
+
+  // Has children
+  if (children.length > 0) {
+    // Check if any child is in education age (6-22)
+    const hasEducationAgeChild = children.some(c => c.age >= 6 && c.age <= 22);
+    if (hasEducationAgeChild) {
+      return 'child_education';
+    }
+    // Child rearing (young children)
+    return 'child_rearing';
+  }
+
+  // Expecting (planning childbirth)
+  if (plannedEvents.includes(PlannedEvent.CHILDBIRTH)) {
+    return 'expecting';
+  }
+
+  // Married without children
+  if (hasSpouse === true) {
+    // Check if planning marriage (newlywed)
+    if (plannedEvents.includes(PlannedEvent.MARRIAGE)) {
+      return 'newlywed';
+    }
+    // Empty nest (older couple without children at home)
+    if (age && age >= 50) {
+      return 'empty_nest';
+    }
+    return 'newlywed'; // Default for married couples
+  }
+
+  // Planning marriage
+  if (plannedEvents.includes(PlannedEvent.MARRIAGE)) {
+    return 'engaged';
+  }
+
+  // New graduate (young single, recently started working)
+  if (age && age >= 22 && age <= 25) {
+    return 'new_graduate';
+  }
+
+  // Default: working single
+  return 'working_single';
+}
+
 export default function OnboardingContainer() {
   const router = useRouter();
-  const { setOnboardingCompleted, setUser } = useAppStore();
+  const { setOnboardingCompleted, setUser, setLifeStage } = useAppStore();
   const [state, setState] = useState<OnboardingState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,9 +273,19 @@ export default function OnboardingContainer() {
         body: JSON.stringify({ section: 'onboarding', data: { completed: true } }),
       });
 
-      // Update Zustand store with user profile and onboarding status
+      // Determine life stage based on user data
+      const lifeStage = determineLifeStage(
+        state.step1.age,
+        state.step1.employmentType,
+        state.step3.hasSpouse,
+        state.step3.children,
+        state.step4.plannedEvents
+      );
+
+      // Update Zustand store with user profile, onboarding status, and life stage
       setUser(userProfile);
       setOnboardingCompleted(true);
+      setLifeStage(lifeStage);
 
       // Redirect to home page (which will now show Dashboard since onboardingCompleted is true)
       router.push('/');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface AgeCategory {
   category: string;
@@ -36,14 +36,107 @@ export function usePersonalizedKeywords(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchKeywords = useCallback(async () => {
-    // Skip fetch if no attributes provided
+  // Use ref for synchronous tracking (state updates are async)
+  const fetchStartedRef = useRef(false);
+
+  // Store userAttributes in ref to access latest value
+  const userAttributesRef = useRef(userAttributes);
+  userAttributesRef.current = userAttributes;
+
+  useEffect(() => {
+    // Use ref for synchronous check - this prevents double fetching even with React Strict Mode
+    if (fetchStartedRef.current) {
+      return;
+    }
+    fetchStartedRef.current = true;
+
+    let cancelled = false;
+
+    const fetchKeywords = async () => {
+      const attrs = userAttributesRef.current;
+
+      // Skip fetch if no attributes provided
+      const hasAttributes =
+        attrs.employmentType ||
+        attrs.residenceType ||
+        attrs.householdType ||
+        (attrs.plannedEvents && attrs.plannedEvents.length > 0) ||
+        attrs.age !== undefined;
+
+      if (!hasAttributes) {
+        if (!cancelled) {
+          setKeywords([]);
+          setAgeCategory([]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const params = new URLSearchParams({
+          action: 'personalized_keywords',
+        });
+
+        if (attrs.employmentType) {
+          params.append('employmentType', attrs.employmentType);
+        }
+        if (attrs.residenceType) {
+          params.append('residenceType', attrs.residenceType);
+        }
+        if (attrs.householdType) {
+          params.append('householdType', attrs.householdType);
+        }
+        if (attrs.plannedEvents && attrs.plannedEvents.length > 0) {
+          params.append('plannedEvents', attrs.plannedEvents.join(','));
+        }
+        if (attrs.age !== undefined) {
+          params.append('age', String(attrs.age));
+        }
+
+        const response = await fetch(`/api/laws?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch keywords: ${response.status}`);
+        }
+
+        const data: PersonalizedKeywordsResult = await response.json();
+
+        if (!cancelled) {
+          setKeywords(data.keywords || []);
+          setAgeCategory(data.ageCategory || []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error('Unknown error'));
+          setKeywords([]);
+          setAgeCategory([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchKeywords();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refetch = async () => {
+    const attrs = userAttributesRef.current;
+
     const hasAttributes =
-      userAttributes.employmentType ||
-      userAttributes.residenceType ||
-      userAttributes.householdType ||
-      (userAttributes.plannedEvents && userAttributes.plannedEvents.length > 0) ||
-      userAttributes.age !== undefined;
+      attrs.employmentType ||
+      attrs.residenceType ||
+      attrs.householdType ||
+      (attrs.plannedEvents && attrs.plannedEvents.length > 0) ||
+      attrs.age !== undefined;
 
     if (!hasAttributes) {
       setKeywords([]);
@@ -60,20 +153,20 @@ export function usePersonalizedKeywords(
         action: 'personalized_keywords',
       });
 
-      if (userAttributes.employmentType) {
-        params.append('employmentType', userAttributes.employmentType);
+      if (attrs.employmentType) {
+        params.append('employmentType', attrs.employmentType);
       }
-      if (userAttributes.residenceType) {
-        params.append('residenceType', userAttributes.residenceType);
+      if (attrs.residenceType) {
+        params.append('residenceType', attrs.residenceType);
       }
-      if (userAttributes.householdType) {
-        params.append('householdType', userAttributes.householdType);
+      if (attrs.householdType) {
+        params.append('householdType', attrs.householdType);
       }
-      if (userAttributes.plannedEvents && userAttributes.plannedEvents.length > 0) {
-        params.append('plannedEvents', userAttributes.plannedEvents.join(','));
+      if (attrs.plannedEvents && attrs.plannedEvents.length > 0) {
+        params.append('plannedEvents', attrs.plannedEvents.join(','));
       }
-      if (userAttributes.age !== undefined) {
-        params.append('age', String(userAttributes.age));
+      if (attrs.age !== undefined) {
+        params.append('age', String(attrs.age));
       }
 
       const response = await fetch(`/api/laws?${params.toString()}`);
@@ -92,24 +185,14 @@ export function usePersonalizedKeywords(
     } finally {
       setLoading(false);
     }
-  }, [
-    userAttributes.employmentType,
-    userAttributes.residenceType,
-    userAttributes.householdType,
-    userAttributes.plannedEvents,
-    userAttributes.age,
-  ]);
-
-  useEffect(() => {
-    fetchKeywords();
-  }, [fetchKeywords]);
+  };
 
   return {
     keywords,
     ageCategory,
     loading,
     error,
-    refetch: fetchKeywords,
+    refetch,
   };
 }
 

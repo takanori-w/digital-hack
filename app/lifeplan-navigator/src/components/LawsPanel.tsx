@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { LawRecommendation, LawCategoryLabels, LawCategory } from '@/types/laws';
 import {
@@ -47,6 +48,7 @@ export default function LawsPanel({
   showSearch = true,
   compact = false,
 }: LawsPanelProps) {
+  const router = useRouter();
   const { user } = useAppStore();
   const [recommendations, setRecommendations] = useState<LawRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -332,7 +334,7 @@ export default function LawsPanel({
                         )}
 
                         <a
-                          href={`https://elaws.e-gov.go.jp/document?lawid=${rec.law_id}`}
+                          href={`https://elaws.e-gov.go.jp/document?lawid=${encodeURIComponent(rec.law_id)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-3 inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
@@ -362,7 +364,7 @@ export default function LawsPanel({
         <div className="p-3 border-t border-gray-100 bg-gray-50">
           <button
             onClick={() => {
-              // TODO: Navigate to full laws page
+              router.push('/dashboard/laws');
             }}
             className="w-full py-2 text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center justify-center gap-1"
           >

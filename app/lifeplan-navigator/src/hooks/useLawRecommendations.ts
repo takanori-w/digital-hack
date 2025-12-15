@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { EmploymentType, PlannedEvent, ResidenceType } from '@/types/onboarding';
 
 export interface LawRecommendation {
@@ -35,7 +35,76 @@ export function useLawRecommendations(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchRecommendations = useCallback(async () => {
+  // Use ref for synchronous tracking (state updates are async)
+  const fetchStartedRef = useRef(false);
+
+  // Store userProfile in ref to access latest value
+  const userProfileRef = useRef(userProfile);
+  userProfileRef.current = userProfile;
+
+  useEffect(() => {
+    // Use ref for synchronous check - this prevents double fetching even with React Strict Mode
+    if (fetchStartedRef.current) {
+      return;
+    }
+    fetchStartedRef.current = true;
+
+    let cancelled = false;
+
+    const fetchRecommendations = async () => {
+      const profile = userProfileRef.current;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const params = new URLSearchParams({
+          action: 'recommendations',
+        });
+
+        if (profile.employmentType) {
+          params.append('employmentType', profile.employmentType);
+        }
+        if (profile.residenceType) {
+          params.append('residenceType', profile.residenceType);
+        }
+        if (profile.plannedEvents && profile.plannedEvents.length > 0) {
+          params.append('plannedEvents', profile.plannedEvents.join(','));
+        }
+
+        const response = await fetch(`/api/laws?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch recommendations: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setRecommendations(data.recommendations || []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error('Unknown error'));
+          setRecommendations([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchRecommendations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refetch = async () => {
+    const profile = userProfileRef.current;
+
     try {
       setLoading(true);
       setError(null);
@@ -44,14 +113,14 @@ export function useLawRecommendations(
         action: 'recommendations',
       });
 
-      if (userProfile.employmentType) {
-        params.append('employmentType', userProfile.employmentType);
+      if (profile.employmentType) {
+        params.append('employmentType', profile.employmentType);
       }
-      if (userProfile.residenceType) {
-        params.append('residenceType', userProfile.residenceType);
+      if (profile.residenceType) {
+        params.append('residenceType', profile.residenceType);
       }
-      if (userProfile.plannedEvents && userProfile.plannedEvents.length > 0) {
-        params.append('plannedEvents', userProfile.plannedEvents.join(','));
+      if (profile.plannedEvents && profile.plannedEvents.length > 0) {
+        params.append('plannedEvents', profile.plannedEvents.join(','));
       }
 
       const response = await fetch(`/api/laws?${params.toString()}`);
@@ -68,17 +137,13 @@ export function useLawRecommendations(
     } finally {
       setLoading(false);
     }
-  }, [userProfile.employmentType, userProfile.residenceType, userProfile.plannedEvents]);
-
-  useEffect(() => {
-    fetchRecommendations();
-  }, [fetchRecommendations]);
+  };
 
   return {
     recommendations,
     loading,
     error,
-    refetch: fetchRecommendations,
+    refetch,
   };
 }
 

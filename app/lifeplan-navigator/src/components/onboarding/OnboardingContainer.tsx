@@ -22,6 +22,7 @@ import { NavigationButtons } from './NavigationButtons';
 import { SelectableCard } from './SelectableCard';
 import { ChildrenInput } from './ChildrenInput';
 import { EmploymentTypeLabels, ResidenceTypeLabels, HouseholdTypeLabels, PlannedEventLabels } from '@/types/onboarding';
+import { getAnimalByLifeStage } from '@/components/AnimalIcons';
 
 const TOTAL_STEPS = 4;
 
@@ -227,6 +228,17 @@ export default function OnboardingContainer() {
       }
 
       // Also save to settings API for Settings page compatibility
+      // Determine life stage for animal recommendation
+      const lifeStage = determineLifeStage(
+        state.step1.age,
+        state.step1.employmentType,
+        state.step3.householdType,
+        state.step3.hasSpouse,
+        state.step3.children,
+        state.step4.plannedEvents
+      );
+      const recommendedAnimal = getAnimalByLifeStage(lifeStage);
+
       const userProfile = {
         id: 'user-' + Date.now(),
         name: '',
@@ -247,7 +259,7 @@ export default function OnboardingContainer() {
         housingType: mapResidenceTypeToHousingType(state.step2.residenceType),
         futurePlans: mapPlannedEventsToFuturePlans(state.step4.plannedEvents),
         goals: [] as string[],
-        favoriteAnimal: 'penguin' as const,
+        favoriteAnimal: recommendedAnimal,
         financialInfo: {
           monthlyHousingCost: 80000,
           currentSavings: 1000000,

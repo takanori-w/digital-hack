@@ -14,7 +14,7 @@ export default function AuthPage({ initialMode = 'login', onSuccess }: AuthPageP
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 flex flex-col">
+    <div className="flex flex-col min-h-[calc(100vh-60px)] bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       {/* Header */}
       <header className="py-6 px-4">
         <div className="max-w-7xl mx-auto flex items-center gap-2">
@@ -39,11 +39,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess }: AuthPageP
           )}
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="py-4 text-center text-sm text-gray-500">
-        <p>&copy; 2024 LifePlan Navigator. All rights reserved.</p>
-      </footer>
     </div>
   );
 }

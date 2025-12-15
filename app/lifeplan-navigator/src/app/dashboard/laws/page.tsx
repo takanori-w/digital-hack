@@ -5,17 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LawRecommendationCard } from '@/components/dashboard/LawRecommendationCard';
 import { NextActionCard, type NextAction } from '@/components/dashboard/NextActionCard';
 import { LawSearchWidget } from '@/components/dashboard/LawSearchWidget';
-import { useLawRecommendations, usePersonalizedKeywords } from '@/hooks';
-import { EmploymentType, PlannedEvent, ResidenceType } from '@/types/onboarding';
-
-// Mock user profile - in production, this would come from user context/session
-const mockUserProfile = {
-  employmentType: EmploymentType.FULL_TIME_EMPLOYEE,
-  plannedEvents: [PlannedEvent.HOME_PURCHASE],
-  residenceType: ResidenceType.RENTAL,
-  age: 30,
-  householdType: 'COUPLE',
-};
+import type { LawRecommendation } from '@/hooks/useLawRecommendations';
 
 // Mock next actions - in production, these would be generated based on user data
 const mockNextActions: NextAction[] = [
@@ -46,24 +36,60 @@ const mockNextActions: NextAction[] = [
   },
 ];
 
+// Mock recommendations - static data to avoid infinite API loop issue
+// Law IDs from e-Gov: https://elaws.e-gov.go.jp/document?lawid={lawId}
+const mockRecommendations: LawRecommendation[] = [
+  {
+    law_id: '332AC0000000026',
+    law_title: '租税特別措置法',
+    law_num: '昭和三十二年法律第二十六号',
+    relevance_reason: '住宅ローン控除に関する規定',
+    relevance_score: 95,
+    category: '税制',
+    summary: '住宅ローンを利用して住宅を取得した場合に、所得税や住民税から控除を受けられます。',
+  },
+  {
+    law_id: '340AC0000000033',
+    law_title: '所得税法',
+    law_num: '昭和四十年法律第三十三号',
+    relevance_reason: '給与所得者の所得税計算に関する規定',
+    relevance_score: 90,
+    category: '税制',
+    summary: '給与所得者として、所得税の計算方法や控除について定められています。',
+  },
+  {
+    law_id: '321CONSTITUTION',
+    law_title: '日本国憲法',
+    law_num: '昭和二十一年憲法',
+    relevance_reason: '基本的な権利と義務',
+    relevance_score: 80,
+    category: '基本法',
+    summary: '日本国の最高法規として、国民の基本的人権を保障しています。',
+  },
+];
+
+// Mock keywords
+const mockKeywords = [
+  '住宅ローン控除',
+  '年末調整',
+  '所得税',
+  '住民税',
+  '不動産取得税',
+  '登録免許税',
+];
+
 export default function LawsDashboardPage() {
   const router = useRouter();
   const [completedActions, setCompletedActions] = useState<string[]>([]);
   const [dismissedActions, setDismissedActions] = useState<string[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  // Fetch law recommendations based on user profile
-  const { recommendations, loading: recommendationsLoading, error: recommendationsError } =
-    useLawRecommendations(mockUserProfile);
-
-  // Fetch personalized keywords for search suggestions
-  const { keywords, loading: keywordsLoading } = usePersonalizedKeywords({
-    employmentType: 'FULL_TIME',
-    residenceType: 'RENT',
-    householdType: 'COUPLE',
-    plannedEvents: ['HOUSE_PURCHASE'],
-    age: 30,
-  });
+  // Use static mock data instead of API calls to avoid infinite loop
+  const recommendations = mockRecommendations;
+  const recommendationsLoading = false;
+  const recommendationsError = null;
+  const keywords = mockKeywords;
+  const keywordsLoading = false;
 
   const handleViewLawDetail = useCallback((lawId: string) => {
     // Navigate to law detail page

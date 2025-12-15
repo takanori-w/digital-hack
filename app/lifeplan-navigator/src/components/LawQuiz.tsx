@@ -296,11 +296,11 @@ export default function LawQuiz() {
               もう一度チャレンジ
             </button>
             <a
-              href="/benefits"
+              href="/dashboard/laws"
               className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
             >
               <BookOpen className="w-5 h-5" />
-              制度を学ぶ
+              詳しく学ぶ
             </a>
           </div>
         </div>

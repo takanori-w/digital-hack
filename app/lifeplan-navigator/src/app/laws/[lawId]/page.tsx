@@ -23,6 +23,63 @@ const categoryIcons: Record<LawCategory, string> = {
   other: '📋',
 };
 
+// Government/Official links by category
+const categoryOfficialLinks: Record<LawCategory, { name: string; url: string; description: string }[]> = {
+  tax: [
+    { name: '国税庁', url: 'https://www.nta.go.jp/', description: '所得税、消費税、相続税などの情報' },
+    { name: '確定申告書等作成コーナー', url: 'https://www.keisan.nta.go.jp/', description: '確定申告書のオンライン作成' },
+    { name: 'ふるさと納税ポータルサイト', url: 'https://www.soumu.go.jp/main_sosiki/jichi_zeisei/czaisei/czaisei_seido/furusato/mechanism/deduction.html', description: 'ふるさと納税の仕組みと手続き' },
+  ],
+  labor: [
+    { name: '厚生労働省', url: 'https://www.mhlw.go.jp/', description: '労働・雇用に関する情報' },
+    { name: 'ハローワークインターネットサービス', url: 'https://www.hellowork.mhlw.go.jp/', description: '求人情報、雇用保険手続き' },
+    { name: '労働基準監督署', url: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/location.html', description: '労働問題の相談窓口' },
+  ],
+  social_security: [
+    { name: '厚生労働省', url: 'https://www.mhlw.go.jp/', description: '社会保障制度全般' },
+    { name: '全国健康保険協会（協会けんぽ）', url: 'https://www.kyoukaikenpo.or.jp/', description: '健康保険の手続き・給付' },
+    { name: '日本年金機構', url: 'https://www.nenkin.go.jp/', description: '年金の手続き・相談' },
+  ],
+  housing: [
+    { name: '国土交通省', url: 'https://www.mlit.go.jp/', description: '住宅政策・不動産取引' },
+    { name: '住宅金融支援機構', url: 'https://www.jhf.go.jp/', description: 'フラット35、住宅ローン' },
+    { name: 'すまい給付金', url: 'https://sumai-kyufu.jp/', description: '住宅取得時の給付金制度' },
+  ],
+  family: [
+    { name: '内閣府 子ども・子育て本部', url: 'https://www8.cao.go.jp/shoushi/', description: '子育て支援制度' },
+    { name: 'こども家庭庁', url: 'https://www.cfa.go.jp/', description: '児童手当、保育などの情報' },
+    { name: '厚生労働省 育児・介護休業法', url: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000130583.html', description: '育児休業制度の案内' },
+  ],
+  inheritance: [
+    { name: '国税庁 相続税・贈与税', url: 'https://www.nta.go.jp/taxes/shiraberu/taxanswer/sozoku/souzokunavi.htm', description: '相続税・贈与税の計算方法' },
+    { name: '法務局', url: 'https://houmukyoku.moj.go.jp/', description: '不動産登記、相続登記' },
+  ],
+  pension: [
+    { name: '日本年金機構', url: 'https://www.nenkin.go.jp/', description: '年金の手続き・相談' },
+    { name: 'ねんきんネット', url: 'https://www.nenkin.go.jp/n_net/', description: '年金記録の確認・試算' },
+    { name: 'iDeCo公式サイト', url: 'https://www.ideco-koushiki.jp/', description: '個人型確定拠出年金の案内' },
+  ],
+  insurance: [
+    { name: '金融庁', url: 'https://www.fsa.go.jp/', description: '保険商品の規制・情報' },
+    { name: '生命保険文化センター', url: 'https://www.jili.or.jp/', description: '生命保険の基礎知識' },
+    { name: '日本損害保険協会', url: 'https://www.sonpo.or.jp/', description: '損害保険の情報' },
+  ],
+  business: [
+    { name: '経済産業省', url: 'https://www.meti.go.jp/', description: '中小企業支援、補助金' },
+    { name: '中小企業庁', url: 'https://www.chusho.meti.go.jp/', description: '中小企業向け支援策' },
+    { name: 'J-Net21', url: 'https://j-net21.smrj.go.jp/', description: '中小企業のための補助金・支援情報' },
+  ],
+  education: [
+    { name: '文部科学省', url: 'https://www.mext.go.jp/', description: '教育制度全般' },
+    { name: '日本学生支援機構（JASSO）', url: 'https://www.jasso.go.jp/', description: '奨学金制度' },
+    { name: '高等教育の修学支援新制度', url: 'https://www.mext.go.jp/kyufu/', description: '授業料減免・給付型奨学金' },
+  ],
+  other: [
+    { name: 'e-Gov法令検索', url: 'https://laws.e-gov.go.jp/', description: '法令の検索・閲覧' },
+    { name: '政府広報オンライン', url: 'https://www.gov-online.go.jp/', description: '政府からのお知らせ' },
+  ],
+};
+
 // Get category from law title
 function getCategoryFromTitle(title: string): LawCategory {
   if (title.includes('税') || title.includes('控除')) return 'tax';
@@ -388,6 +445,33 @@ export default function LawDetailPage() {
               </div>
             )}
 
+            {/* Official Links */}
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <span>🏛️</span>
+                関連する公式サイト
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {categoryOfficialLinks[category].map((link, index) => (
+                  <a
+                    key={index}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-4 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-gray-200 transition-colors group"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-blue-600 group-hover:text-blue-700 font-medium">
+                        {link.name}
+                      </span>
+                      <span className="text-gray-400 text-sm">↗</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{link.description}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+
             {/* Disclaimer */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
@@ -415,7 +499,7 @@ export default function LawDetailPage() {
             {/* Actions */}
             <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-200">
               <a
-                href={`https://laws.e-gov.go.jp/search?keyword=${encodeURIComponent(detail.law_title)}`}
+                href={`https://elaws.e-gov.go.jp/document?lawid=${encodeURIComponent(lawId)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
